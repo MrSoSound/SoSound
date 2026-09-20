@@ -1,69 +1,69 @@
 # Disclaimer
 
-## Cos'è, e cosa non è
+## What it is, and what it isn't
 
-SoSound è un lettore musicale che cerca brani tramite l'API interna di
-YouTube Music (InnerTube) e li scarica localmente per l'ascolto offline,
-usando [yt-dlp](https://github.com/yt-dlp/yt-dlp) impacchettato tramite
+SoSound is a music player that searches tracks through YouTube Music's
+internal API (InnerTube) and downloads them locally for offline
+listening, using [yt-dlp](https://github.com/yt-dlp/yt-dlp) bundled via
 [youtubedl-android](https://github.com/junkfood02/youtubedl-android).
 
-**Non è un servizio.** Non esiste alcun server dell'autore in mezzo: ogni
-ricerca e ogni scaricamento è una connessione diretta fra il dispositivo di
-chi usa l'app e i server di YouTube, con le stesse richieste che farebbe un
-browser. L'autore non ospita, non trasmette, non conserva e non ha accesso
-a nessun file audio scaricato da chi usa l'app.
+**It is not a service.** There is no server run by the author in the
+middle: every search and every download is a direct connection between
+the device running the app and YouTube's servers, the same kind of
+request a browser would make. The author does not host, transmit, store,
+or have access to any audio file downloaded by anyone using the app.
 
-**Non è affiliato con YouTube.** SoSound non è un prodotto di Google,
-YouTube, Alphabet Inc. o Spotify AB, non è da loro sponsorizzato,
-approvato o in alcun modo associato. "YouTube", "YouTube Music" e
-"Spotify" sono marchi dei rispettivi titolari, citati qui solo per
-descrivere con cosa l'app interagisce.
+**It is not affiliated with YouTube.** SoSound is not a product of
+Google, YouTube, Alphabet Inc., or Spotify AB, and is not sponsored,
+endorsed, or in any way associated with them. "YouTube", "YouTube Music",
+and "Spotify" are trademarks of their respective owners, mentioned here
+only to describe what the app interacts with.
 
-L'API InnerTube usata per la ricerca non è un'interfaccia pubblica
-documentata: è quella che il sito e l'app ufficiali usano internamente, ed
-è stata osservata e replicata (lo stesso vale, più in generale, per il modo
-in cui yt-dlp risolve gli indirizzi audio). Può cambiare in qualsiasi
-momento senza preavviso, e a quel punto l'app può smettere di funzionare
-finché non viene aggiornata — non c'è alcuna garanzia di continuità.
+The InnerTube API used for search is not a documented public interface:
+it's the one the official site and app use internally, and it has been
+observed and replicated (the same is true, more generally, of how
+yt-dlp resolves audio URLs). It can change at any time without notice,
+and when it does the app may stop working until it's updated — there is
+no guarantee of continued operation.
 
-## Nessuna garanzia
+## No warranty
 
-Il software è distribuito secondo i termini della licenza **GNU GPL v3.0**
-(vedi [`LICENSE`](LICENSE)), che include esplicitamente, alle sezioni 15 e
-16, l'assenza di qualunque garanzia: SENZA ALCUNA GARANZIA, nemmeno quella
-implicita di commerciabilità o idoneità per uno scopo particolare. Nella
-misura massima permessa dalla legge applicabile, l'autore non è
-responsabile per danni derivanti dall'uso o dall'impossibilità di usare
-il software.
+The software is distributed under the terms of the **GNU GPL v3.0**
+license (see [`LICENSE`](LICENSE)), which explicitly states, in
+sections 15 and 16, that there is no warranty of any kind: NO WARRANTY
+WHATSOEVER, not even the implied warranty of merchantability or fitness
+for a particular purpose. To the maximum extent permitted by applicable
+law, the author is not liable for damages arising from the use or
+inability to use the software.
 
-## Responsabilità di chi usa l'app
+## Responsibility of whoever uses the app
 
-SoSound è uno strumento general-purpose: permette di cercare, scaricare e
-ascoltare offline brani accessibili tramite l'API di YouTube Music, cosa
-che comprende sia contenuti liberamente distribuibili sia contenuti
-protetti da copyright. Come per qualunque strumento di questo tipo
-(un browser, un masterizzatore, una fotocamera), è **chi lo usa** —
-non chi lo scrive — a dover verificare di avere il diritto di scaricare e
-conservare quel contenuto secondo le leggi sul diritto d'autore della
-propria giurisdizione e i Termini di Servizio di YouTube. L'autore non
-controlla, non modera e non può controllare l'uso che ne viene fatto da
-terzi.
+SoSound is a general-purpose tool: it lets you search, download, and
+listen offline to tracks accessible through the YouTube Music API,
+which includes both freely distributable content and copyrighted
+content. As with any tool of this kind (a browser, a disc burner, a
+camera), it is **the user** — not the author — who must verify they
+have the right to download and keep that content under the copyright
+laws of their own jurisdiction and YouTube's Terms of Service. The
+author does not control, moderate, or have any way to control how
+third parties use it.
 
-## Il precedente di riferimento
+## The relevant precedent
 
-Nel 2020 GitHub rimosse temporaneamente il repository di **youtube-dl**
-in seguito a una segnalazione DMCA della RIAA — non per violazione diretta
-di copyright, ma per una presunta elusione di una misura tecnica di
-protezione (DMCA §1201, il "rolling cipher" di YouTube). L'
+In 2020, GitHub temporarily took down the **youtube-dl** repository
+following a DMCA notice from the RIAA — not for direct copyright
+infringement, but for an alleged circumvention of a technical
+protection measure (DMCA §1201, YouTube's "rolling cipher"). The
 [Electronic Frontier Foundation](https://www.eff.org/deeplinks/2020/11/riaa-abuses-dmca-take-down-youtube-dl)
-intervenne e il repository fu ripristinato, sulla base del fatto che uno
-strumento capace di usi legittimi sostanziali — youtube-dl permette di
-scaricare anche contenuti liberamente distribuibili, di pubblico dominio o
-con licenza dell'autore — non elude di per sé una protezione efficace e non
-è per questo illegale. SoSound si trova nella stessa area: uno strumento
-general-purpose, non un servizio che distribuisce contenuti protetti.
+stepped in and the repository was restored, on the grounds that a tool
+capable of substantial non-infringing uses — youtube-dl can also
+download freely distributable, public-domain, or author-licensed
+content — does not by itself circumvent an effective protection measure
+and is not illegal for that reason. SoSound sits in the same territory:
+a general-purpose tool, not a service that distributes protected
+content.
 
-## Non c'è supporto commerciale
+## No commercial support
 
-Questo è un progetto personale, pubblicato così com'è (*as-is*), senza
-alcun impegno di manutenzione, assistenza o compatibilità futura.
+This is a personal project, published as-is, with no commitment to
+maintenance, support, or future compatibility.

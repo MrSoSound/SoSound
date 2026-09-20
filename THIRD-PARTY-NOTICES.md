@@ -1,21 +1,22 @@
-# Licenze di terze parti
+# Third-party notices
 
-SoSound è pubblicato sotto **GNU GPL v3.0** (vedi [`LICENSE`](LICENSE)),
-condizione imposta dall'inclusione di `youtubedl-android`, che è a sua
-volta GPL-3.0 senza eccezioni di linking: l'APK risultante è un'opera
-combinata soggetta a quella licenza.
+SoSound is published under **GNU GPL v3.0** (see [`LICENSE`](LICENSE)),
+a condition imposed by including `youtubedl-android`, which is itself
+GPL-3.0 with no linking exception: the resulting APK is a combined work
+subject to that license.
 
-| Componente | Uso | Licenza |
+| Component | Use | License |
 |---|---|---|
-| [youtubedl-android](https://github.com/junkfood02/youtubedl-android) | impacchetta yt-dlp (Python) per Android | GPL-3.0 |
-| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | risoluzione e scaricamento dei flussi audio | Unlicense |
-| [Media3 / ExoPlayer](https://github.com/androidx/media) | riproduzione audio | Apache-2.0 |
-| [AndroidX (Room, DataStore, Lifecycle, Navigation, WorkManager, ecc.)](https://developer.android.com/jetpack/androidx) | infrastruttura app | Apache-2.0 |
-| [Ktor client](https://github.com/ktorio/ktor) | chiamate HTTP verso l'API InnerTube | Apache-2.0 |
-| [Coil](https://github.com/coil-kt/coil) | caricamento immagini/copertine | Apache-2.0 |
-| [NanoHTTPD](https://github.com/NanoHttpd/nanohttpd) | server locale per la trasmissione DLNA | BSD 3-Clause |
-| [play-services-cast-framework](https://developers.google.com/cast) | trasmissione su Chromecast | licenza Google Play Services SDK |
+| [youtubedl-android](https://github.com/junkfood02/youtubedl-android) | bundles yt-dlp (Python) for Android | GPL-3.0 |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) | resolving and downloading audio streams | Unlicense |
+| [Media3 / ExoPlayer](https://github.com/androidx/media) | audio playback | Apache-2.0 |
+| [AndroidX (Room, DataStore, Lifecycle, Navigation, WorkManager, etc.)](https://developer.android.com/jetpack/androidx) | app infrastructure | Apache-2.0 |
+| [Ktor client](https://github.com/ktorio/ktor) | HTTP calls to the InnerTube API | Apache-2.0 |
+| [Coil](https://github.com/coil-kt/coil) | image/cover loading | Apache-2.0 |
+| [NanoHTTPD](https://github.com/NanoHttpd/nanohttpd) | local server for DLNA casting | BSD 3-Clause |
+| [play-services-cast-framework](https://developers.google.com/cast) | Chromecast casting | Google Play Services SDK license |
 
-Tutte le licenze permissive elencate (Apache-2.0, BSD, Unlicense) sono
-compatibili con la GPL-3.0 nel senso in cui vengono qui usate — come
-dipendenze incluse in un'opera combinata GPL-3.0, non il contrario.
+All the permissive licenses listed above (Apache-2.0, BSD, Unlicense)
+are compatible with GPL-3.0 in the way they are used here — as
+dependencies included in a GPL-3.0 combined work, not the other way
+around.
