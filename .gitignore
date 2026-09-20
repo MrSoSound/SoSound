@@ -14,5 +14,20 @@ android/app/build/
 
 # La chiave di firma e la sua password: fuori da git per sempre.
 *.jks
+*.p12
+*.pem
 keystore.properties
 android/keystore.properties
+
+# File che rivelano lo sviluppo assistito da AI o gli strumenti usati:
+# non riguardano chi userà l'app, e possono contenere dettagli interni.
+CLAUDE.md
+AGENTS.md
+GEMINI.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
+.clinerules
+.github/copilot-instructions.md
+.aider*

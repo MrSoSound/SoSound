@@ -140,6 +140,42 @@ class PlaybackService : MediaSessionService() {
             // telefono. È il punto giusto per farlo — l'interfaccia non
             // deve sapere dove sta suonando.
             .setCallback(object : MediaSession.Callback {
+
+                /**
+                 * Il tasto «play» degli auricolari quando non sta suonando niente.
+                 *
+                 * ## Cosa decide Android, e cosa decidiamo noi
+                 *
+                 * A chi mandare quel tasto lo sceglie il sistema, e
+                 * sceglie **l'ultima app che ha suonato**. Quella
+                 * memoria non e' nostra e non si puo' rivendicare: si
+                 * diventa l'ultima app che ha suonato suonando.
+                 *
+                 * Quello che dipendeva da noi e' un'altra cosa, e
+                 * mancava: per essere un'app che il sistema puo'
+                 * **riprendere** da ferma bisogna saper rispondere alla
+                 * domanda «cosa suoneresti adesso?». Senza questa
+                 * risposta SoSound non era nemmeno candidabile, e il
+                 * tasto finiva per forza a qualcun altro.
+                 *
+                 * La risposta e' la coda di ieri, che ormai sappiamo
+                 * dov'era.
+                 */
+                override fun onPlaybackResumption(
+                    mediaSession: MediaSession,
+                    controller: MediaSession.ControllerInfo,
+                ): com.google.common.util.concurrent.ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+                    val futuro = com.google.common.util.concurrent.SettableFuture
+                        .create<MediaSession.MediaItemsWithStartPosition>()
+                    scope.launch {
+                        val esito = runCatching { codaDiIeri() }.getOrNull()
+                        if (esito == null) futuro.setException(
+                            IllegalStateException("nessuna coda da riprendere")
+                        ) else futuro.set(esito)
+                    }
+                    return futuro
+                }
+
                 override fun onSetMediaItems(
                     mediaSession: MediaSession,
                     controller: MediaSession.ControllerInfo,
@@ -231,6 +267,50 @@ class PlaybackService : MediaSessionService() {
      * quello dell'ultimo secondo suonato, non dell'ultima volta che
      * qualcuno ha guardato.
      */
+    /**
+     * La coda salvata, pronta da riprendere.
+     *
+     * I brani si rileggono dal database: quello che nel frattempo e'
+     * stato cancellato semplicemente non c'e' piu', e la coda si
+     * accorcia invece di puntare al vuoto.
+     */
+    private suspend fun codaDiIeri(): MediaSession.MediaItemsWithStartPosition? {
+        val salvata = CodaSalvata.leggi(this) ?: return null
+        val dao = (application as SoSoundApp).database.tracks()
+        val brani = salvata.brani.mapNotNull { dao.byId(it) }
+        if (brani.isEmpty()) return null
+        val indice = CodaSalvata.indiceDopoLaPotatura(
+            salvati = salvata.brani,
+            sopravvissuti = brani.map { it.videoId }.toSet(),
+            indice = salvata.indice,
+        )
+        return MediaSession.MediaItemsWithStartPosition(
+            brani.map { perIlTelefono(mediaItemDi(it)) },
+            indice,
+            salvata.posizioneMs,
+        )
+    }
+
+    /** Da un brano del database all'elemento che il lettore capisce. */
+    private fun mediaItemDi(t: com.sosound.app.data.library.TrackEntity): MediaItem =
+        MediaItem.Builder()
+            .setMediaId(t.videoId)
+            .setUri(
+                if (t.haFile) {
+                    if (t.path.startsWith("content://")) android.net.Uri.parse(t.path)
+                    else android.net.Uri.fromFile(java.io.File(t.path))
+                } else android.net.Uri.parse(com.sosound.app.data.stream.Flusso.uriDi(t.videoId))
+            )
+            .setMediaMetadata(
+                androidx.media3.common.MediaMetadata.Builder()
+                    .setTitle(t.title)
+                    .setArtist(t.artist)
+                    .setAlbumTitle(t.album)
+                    .setArtworkUri(t.coverPath?.let { android.net.Uri.fromFile(java.io.File(it)) })
+                    .build()
+            )
+            .build()
+
     private fun salvaCoda() {
         val p = session?.player ?: return
         val brani = (0 until p.mediaItemCount).map { p.getMediaItemAt(it).mediaId }

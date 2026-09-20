@@ -473,13 +473,63 @@ la sequenza di ascolto.
 
 ## Da fare
 
-- Riprendere un download interrotto invece di ricominciarlo
+### Prossime
+
 - **Importare da YouTube Music.** Un link con `list=` restituisce i
   brani con il loro videoId: nessuna ricerca per titolo, nessun brano
-  «non trovato». Riusa il lettore che il catalogo ha gia'
+  «non trovato». Riusa il lettore che il catalogo ha gia'. Provato: 71
+  brani da una playlist vera, stesso renderer degli album
 - **Importare da Deezer.** API pubblica senza chiave, e da un link di
-  profilo arrivano tutte le playlist pubbliche insieme
+  profilo arrivano tutte le playlist pubbliche insieme. Provato: 89
+  playlist da un profilo
 - **Spotify oltre i cento brani.** La pagina di anteprima si ferma a
   cento e non dichiara il totale. Nella stessa pagina c'e' un token
   anonimo con cui l'API vera pagina oltre, ma e' un appiglio non
-  documentato e va provato su un telefono
+  documentato e va provato su un telefono: da un indirizzo di
+  datacenter risponde 429
+- Riprendere un download interrotto invece di ricominciarlo
+
+### Piu' avanti
+
+- **Cercare a voce, con un modello piccolo sul telefono.**
+
+  L'idea e' dire «metti quella dei Daft Punk che fa tu-tu-tun» e
+  trovarla. Il pezzo facile e' il riconoscimento del parlato: Android
+  lo fa gia' da solo, gratis e offline sui telefoni recenti
+  (`SpeechRecognizer`), e non serve nessun modello nostro.
+
+  Il pezzo che vorrebbe un modello e' il passo dopo: da una frase
+  storta a una ricerca sensata. «quella canzone dell'estate scorsa con
+  il fischio» non e' una query, e un modello piccolo — Gemma 3 270M o
+  1B, via MediaPipe LLM Inference o litert-lm — potrebbe trasformarla
+  in qualcosa che il catalogo capisce.
+
+  **Il costo e' il punto da valutare prima di scrivere una riga:** un
+  modello da 270M quantizzato sono ~300 MB di APK contro i 37 di
+  adesso, e su un telefono di fascia media qualche secondo per
+  risposta. Un'app di musica che pesa dieci volte tanto per capire le
+  frasi storte e' uno scambio da fare solo dopo aver provato che il
+  giro semplice — parlato di Android, testo dritto nella ricerca — non
+  basta. Quindi: prima quello, che costa due giorni, e il modello solo
+  se si vede che serve davvero.
+
+- **Riconoscere una canzone che sta suonando.**
+
+  Il meccanismo di Shazam non e' segreto: si prende lo spettrogramma,
+  si tengono i picchi piu' forti, si costruiscono coppie di picchi
+  vicini e ogni coppia diventa un numero. Quei numeri si cercano in un
+  archivio, e la canzone giusta e' quella che ne ha tanti **con lo
+  stesso scarto di tempo**. Sul telefono costa poco: qualche secondo di
+  audio e una FFT.
+  
+  **Il problema non e' calcolare l'impronta, e' avere l'archivio con
+  cui confrontarla.** Shazam ne ha uno da decine di milioni di brani
+  costruito in vent'anni; noi avremmo solo quello che c'e' in libreria.
+
+  Il che pero' non e' inutile, ed e' la versione che vale la pena
+  fare: **«che cosa e' questa, fra le mie?»**. Serve a ritrovare in
+  mezzo a cinquecento brani quello che sta suonando da un'altra parte,
+  e a riconoscere un doppione con due titoli diversi. Per il resto del
+  mondo l'unica strada onesta e' un servizio esterno (AudD, ACRCloud),
+  che vuole una chiave e un abbonamento — cioe' esattamente quello che
+  questa app esiste per non avere.
