@@ -20,8 +20,9 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - uses: android-actions/setup-android@v3
-
+      # ubuntu-latest ships with the Android SDK already installed and
+      # its licenses pre-accepted; the Gradle plugin downloads whatever
+      # extra platform/build-tools version it needs on its own.
       - uses: gradle/actions/setup-gradle@v4
 
       - name: Build (debug + release non firmata)
