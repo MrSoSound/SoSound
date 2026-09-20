@@ -26,6 +26,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarDefaults
@@ -34,6 +36,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import com.sosound.app.data.catalog.SearchKind
+import com.sosound.app.data.update.showsBadge
 import kotlinx.coroutines.launch
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -210,6 +213,7 @@ private fun Root(vm: MainViewModel = viewModel()) {
 
     val player by vm.playerState.collectAsState()
     val accent by vm.accent.collectAsState()
+    val aggiornamentoStato by vm.appUpdateState.collectAsState()
 
     // Aprendo un artista dalla scheda di un brano si finisce su una
     // pagina che vive nella scheda «Cerca»: la barra in fondo deve
@@ -326,14 +330,24 @@ private fun Root(vm: MainViewModel = viewModel()) {
                         selected = tab == t,
                         onClick = { vaiA(Pagina.primaDi(t)) },
                         icon = {
-                            Icon(
-                                when (t) {
-                                    Tab.LIBRERIA -> Icons.Default.LibraryMusic
-                                    Tab.CERCA -> Icons.Default.Search
-                                    Tab.IMPOSTAZIONI -> Icons.Default.Settings
-                                },
-                                contentDescription = t.label,
-                            )
+                            val icona = @Composable {
+                                Icon(
+                                    when (t) {
+                                        Tab.LIBRERIA -> Icons.Default.LibraryMusic
+                                        Tab.CERCA -> Icons.Default.Search
+                                        Tab.IMPOSTAZIONI -> Icons.Default.Settings
+                                    },
+                                    contentDescription = t.label,
+                                )
+                            }
+                            // Il pallino dice «c'e' un aggiornamento» solo
+                            // sulla scheda dove si scarica, e solo quando
+                            // c'e' davvero qualcosa che aspetta un tocco.
+                            if (t == Tab.IMPOSTAZIONI && aggiornamentoStato.showsBadge()) {
+                                BadgedBox(badge = { Badge() }) { icona() }
+                            } else {
+                                icona()
+                            }
                         },
                         label = { Text(t.label) },
                         colors = NavigationBarItemDefaults.colors(

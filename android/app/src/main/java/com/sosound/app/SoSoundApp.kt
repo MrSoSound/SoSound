@@ -10,6 +10,7 @@ import com.sosound.app.data.download.Downloader
 import com.sosound.app.data.library.LibraryDatabase
 import com.sosound.app.data.storage.BackupStore
 import com.sosound.app.data.storage.MusicStorage
+import com.sosound.app.data.update.AppUpdateManager
 
 /**
  * Tutto quello che vive quanto l'app.
@@ -47,6 +48,8 @@ class SoSoundApp : Application() {
         DownloadQueue(this, downloader, database.tracks())
     }
 
+    val appUpdateManager: AppUpdateManager by lazy { AppUpdateManager(this) }
+
     override fun onCreate() {
         super.onCreate()
         DownloadService.ensureChannel(this)
@@ -54,5 +57,6 @@ class SoSoundApp : Application() {
         // invece che al primo download: sono qualche secondo che e' meglio
         // spendere mentre l'utente guarda la libreria.
         downloadQueue
+        appUpdateManager.checkOnStartIfNeeded()
     }
 }

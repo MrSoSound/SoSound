@@ -25,6 +25,7 @@ import com.sosound.app.data.storage.ImportPreview
 import com.sosound.app.data.storage.ImportProblem
 import com.sosound.app.data.storage.BackupStore
 import com.sosound.app.data.storage.MusicStorage
+import com.sosound.app.data.update.UpdateState
 import com.sosound.app.playback.PlayerConnection
 import com.sosound.app.playback.PlayerState
 import com.sosound.app.ui.accent.AccentLoader
@@ -92,6 +93,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val queue = application.downloadQueue
     private val storage = application.storage
     private val backup = application.backup
+    private val appUpdateManager = application.appUpdateManager
 
     val player = PlayerConnection(app)
     val playerState: StateFlow<PlayerState> get() = player.state
@@ -951,6 +953,15 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val sempreOffline: StateFlow<Boolean> get() = storage.sempreOffline
     val sentiNotifiche: StateFlow<Boolean> get() = storage.sentiNotifiche
     fun impostaSentiNotifiche(v: Boolean) = storage.impostaSentiNotifiche(v)
+
+    private val _diagnosiAudio = MutableStateFlow<String?>(null)
+    /** Cosa l'app ha visto suonare, per capire se l'abbassamento puo' scattare. */
+    val diagnosiAudio: StateFlow<String?> = _diagnosiAudio
+
+    fun controllaAudio() {
+        _diagnosiAudio.value = com.sosound.app.playback.PlaybackService.statoAudio()
+            ?: "La riproduzione non è attiva: fai partire un brano e riprova."
+    }
     val destinazioneFragile: StateFlow<Boolean> get() = storage.destinazioneFragile
 
     /**
@@ -1290,6 +1301,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun clearEngineMessage() {
         _engineMessage.value = null
     }
+
+    // -------------------------------------------- aggiornamento dell'app
+
+    val appUpdateState: StateFlow<UpdateState> = appUpdateManager.state
+    val appCurrentVersion: String get() = appUpdateManager.currentVersion
+
+    /** Il tasto «Controlla aggiornamenti» in Impostazioni. */
+    fun checkForAppUpdate() = appUpdateManager.check(manual = true)
+
+    /** Un solo tasto: scarica e installa, senza altri passaggi da
+     *  cercare. Mostra comunque il dialogo di sistema di Android — quello
+     *  non si puo' saltare. */
+    fun downloadAndInstallAppUpdate() = appUpdateManager.downloadAndInstall()
+
+    fun skipAppUpdate() = appUpdateManager.skipCurrent()
+
+    /** Da richiamare tornando dalla schermata «installa da questa fonte». */
+    fun retryAppInstall() = appUpdateManager.retryInstall()
+
+    fun openInstallPermissionSettings() = appUpdateManager.requestInstallPermission()
+
+    fun dismissAppUpdateError() = appUpdateManager.dismissError()
 
     // ------------------------------------------------ trasmissione
 

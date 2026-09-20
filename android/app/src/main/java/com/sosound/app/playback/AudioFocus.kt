@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
+import android.media.AudioPlaybackConfiguration
 import androidx.media3.common.Player
 
 /**
@@ -142,6 +143,111 @@ class AudioFocusHandler(
 
     companion object {
         const val KEY_NOTIFICHE = "sentire_notifiche"
+
+        /**
+         * Gli usi che valgono un abbassamento.
+         *
+         * Notifiche, sveglie e suonerie: cose corte che devono farsi
+         * sentire. Fuori restano media e chiamate — la prima sarebbe
+         * un'altra app di musica, e abbassare la nostra perche' ne suona
+         * un'altra non ha senso; la seconda passa gia' dal fuoco audio,
+         * dove si mette in pausa sul serio.
+         */
+        /** Quanto resta giu' dopo che il suono e' finito. */
+        private const val CODA_ABBASSATO = 1_200L
+
+        /** Oltre questo si rialza comunque: un volume basso per sempre
+         *  e' il guasto peggiore dei due. */
+        private const val MASSIMO_ABBASSATO = 8_000L
+
+        private val USI_DA_SENTIRE = setOf(
+            AudioAttributes.USAGE_NOTIFICATION,
+            AudioAttributes.USAGE_NOTIFICATION_RINGTONE,
+            AudioAttributes.USAGE_NOTIFICATION_EVENT,
+            AudioAttributes.USAGE_ALARM,
+            AudioAttributes.USAGE_ASSISTANCE_SONIFICATION,
+            AudioAttributes.USAGE_ASSISTANT,
+        )
+    }
+
+
+    // ------------------------------------------- quando nessuno chiede
+
+    /**
+     * Abbassa anche quando nessuno ha chiesto il fuoco audio.
+     *
+     * ## Perche' serve
+     *
+     * Il fuoco audio funziona solo se l'altra app lo **chiede**. Un
+     * navigatore lo chiede, l'assistente lo chiede — ma il suono di
+     * una notifica quasi sempre no: il sistema lo suona sopra la musica
+     * senza avvisare nessuno. Chi ascolta non lo sa e vede solo che il
+     * volume non cala.
+     *
+     * Qui si guarda la cosa dall'altro lato: invece di aspettare una
+     * richiesta, si guarda **cosa sta suonando sul telefono**. Se
+     * compare qualcosa marcato come notifica o allarme mentre suoniamo
+     * noi, si abbassa; quando sparisce, si rialza.
+     *
+     * ## Cosa non garantisce
+     *
+     * Che il sistema ci dica sempre di che tipo era quel suono: da
+     * Android 9 le informazioni sulle altre app sono ridotte, e un'app
+     * senza permessi speciali vede una versione ripulita. Dove
+     * l'informazione manca non si fa niente — meglio non abbassare che
+     * abbassare a caso.
+     */
+    private val osservatore = object : AudioManager.AudioPlaybackCallback() {
+        override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>) {
+            val altri = configs.count { it.audioAttributes.usage in USI_DA_SENTIRE }
+            ultimoSuonoAltrui = if (altri > 0) System.currentTimeMillis() else ultimoSuonoAltrui
+            quantiAltri = altri
+
+            if (altri > 0) {
+                if (player.playWhenReady && vuoleSentirle()) {
+                    manina.removeCallbacks(rialzaDaSolo)
+                    abbassa()
+                    // Una rete di sicurezza: se la sparizione non
+                    // arrivasse mai, il volume resterebbe basso per
+                    // sempre — ed e' il guasto peggiore dei due.
+                    riprendiTraPoco(MASSIMO_ABBASSATO)
+                }
+            } else {
+                // Non si rialza di scatto.
+                //
+                // Un bip dura un secondo: abbassare e rialzare dentro
+                // quel secondo produce un buco che l'orecchio non
+                // registra come «la musica e' calata» — si sente solo un
+                // disturbo. Restando giu' ancora un momento il calo si
+                // percepisce per quello che e'.
+                riprendiTraPoco(CODA_ABBASSATO)
+            }
+        }
+    }
+
+    /** L'ultima volta che un'altra app ha suonato qualcosa, o 0. */
+    @Volatile var ultimoSuonoAltrui: Long = 0
+        private set
+
+    /** Quanti suoni altrui sono in corso adesso. */
+    @Volatile var quantiAltri: Int = 0
+        private set
+
+    private val manina = android.os.Handler(android.os.Looper.getMainLooper())
+    private val rialzaDaSolo = Runnable { rialza() }
+
+    private fun riprendiTraPoco(fraQuanto: Long) {
+        manina.removeCallbacks(rialzaDaSolo)
+        manina.postDelayed(rialzaDaSolo, fraQuanto)
+    }
+
+    fun osserva() {
+        runCatching { audioManager.registerAudioPlaybackCallback(osservatore, manina) }
+    }
+
+    fun smettiDiOsservare() {
+        runCatching { audioManager.unregisterAudioPlaybackCallback(osservatore) }
+        manina.removeCallbacks(rialzaDaSolo)
     }
 
     /** Il volume di prima, da ripristinare quando il bip e' passato. */

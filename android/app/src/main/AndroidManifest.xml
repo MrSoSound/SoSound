@@ -21,6 +21,11 @@
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- L'app non passa dal Play Store: aggiornarsi da sola vuol dire
+         installare un APK scaricato, e da Android 8 ogni app deve avere
+         questo permesso concesso esplicitamente per la propria fonte. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <!-- Trasmettere vuol dire trovare gli apparecchi sulla rete locale e
          fare da sorgente per loro: servono lo stato della rete e, da
          Android 13, il permesso per i dispositivi vicini. -->
@@ -73,6 +78,19 @@
             android:name=".data.download.DownloadService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Consegna l'APK scaricato al programma di installazione di
+             sistema, che gira come un altro processo e non puo' leggere
+             direttamente lo spazio privato dell'app. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/percorsi_file" />
+        </provider>
 
     </application>
 </manifest>

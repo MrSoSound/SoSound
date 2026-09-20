@@ -112,6 +112,9 @@ class PlaybackService : MediaSessionService() {
 
         val focusHandler = AudioFocusHandler(this, player)
         focus = focusHandler
+        // Si mette in ascolto di cosa suona sul telefono: il fuoco audio
+        // da solo non basta, perche' le notifiche quasi mai lo chiedono.
+        focusHandler.osserva()
 
         player.addListener(object : Player.Listener {
             override fun onMediaItemTransition(item: MediaItem?, reason: Int) {
@@ -574,6 +577,21 @@ class PlaybackService : MediaSessionService() {
     init { istanza = java.lang.ref.WeakReference(this) }
 
     companion object {
+        /** Com'e' messo il fuoco audio, per la diagnosi in impostazioni. */
+        fun statoAudio(): String? = attivo()?.focus?.let { f ->
+            val quando = f.ultimoSuonoAltrui
+            buildString {
+                append(if (f.quantiAltri > 0) "adesso sta suonando qualcos'altro" else "niente in corso")
+                if (quando > 0) {
+                    val fa = (System.currentTimeMillis() - quando) / 1000
+                    append("; ultimo suono di un'altra app ")
+                    append(if (fa < 60) "$fa secondi fa" else "${fa / 60} minuti fa")
+                } else {
+                    append("; nessun suono di altre app visto da quando l'app è partita")
+                }
+            }
+        }
+
         /** Gli avvisi del servizio, che l'interfaccia mostra. */
         val avvisi = kotlinx.coroutines.flow.MutableSharedFlow<String>(
             extraBufferCapacity = 4,
@@ -609,6 +627,7 @@ class PlaybackService : MediaSessionService() {
         cast = null
         server?.ferma()
         server = null
+        focus?.smettiDiOsservare()
         focus?.release()
         focus = null
         CacheAudio.chiudi()

@@ -15,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
+import com.sosound.app.data.update.UpdateState
 import com.sosound.app.ui.theme.Vetro
 import com.sosound.app.ui.theme.glass
 
@@ -62,6 +64,7 @@ fun SettingsScreen(vm: MainViewModel) {
     val updating by vm.updating.collectAsState()
     val message by vm.engineMessage.collectAsState()
     val ready by vm.engineReady.collectAsState()
+    val appUpdate by vm.appUpdateState.collectAsState()
 
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
@@ -298,6 +301,109 @@ fun SettingsScreen(vm: MainViewModel) {
         }
 
         Box(Modifier.fillMaxWidth().glass()) {
+            Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text("Aggiornamenti dell'app", style = MaterialTheme.typography.titleMedium, color = Vetro.Ink)
+
+                Text(
+                    "Hai la versione ${vm.appCurrentVersion}",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+
+                HorizontalDivider()
+
+                when (val s = appUpdate) {
+                    is UpdateState.Idle -> {
+                        Button(onClick = { vm.checkForAppUpdate() }, modifier = Modifier.fillMaxWidth()) {
+                            Text("Controlla aggiornamenti")
+                        }
+                    }
+
+                    is UpdateState.Checking -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                            Text("Controllo…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    is UpdateState.Available -> {
+                        Text(
+                            "È disponibile la versione ${s.release.tagName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        s.release.body?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Vetro.InkFaint,
+                                maxLines = 4,
+                            )
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { vm.skipAppUpdate() }) { Text("Salta") }
+                            Button(
+                                onClick = { vm.downloadAndInstallAppUpdate() },
+                                modifier = Modifier.weight(1f),
+                            ) { Text("Scarica e installa") }
+                        }
+                    }
+
+                    is UpdateState.Downloading -> {
+                        Text(
+                            "Scarico la ${s.release.tagName}… ${(s.progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        LinearProgressIndicator(
+                            progress = { s.progress },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+
+                    is UpdateState.Installing -> {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp)
+                            Text("Apro l'installazione…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+
+                    is UpdateState.NeedsInstallPermission -> {
+                        Text(
+                            "Android chiede di autorizzare SoSound a installare " +
+                                "aggiornamenti da sé: concedilo, poi torna qui.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Vetro.InkFaint,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { vm.openInstallPermissionSettings() }) {
+                                Text("Apri impostazioni")
+                            }
+                            Button(onClick = { vm.retryAppInstall() }, modifier = Modifier.weight(1f)) {
+                                Text("Ho concesso, installa")
+                            }
+                        }
+                    }
+
+                    is UpdateState.Error -> {
+                        Text(
+                            s.message,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Vetro.Danger,
+                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedButton(onClick = { vm.dismissAppUpdateError() }) { Text("Chiudi") }
+                            Button(onClick = { vm.checkForAppUpdate() }) { Text("Riprova") }
+                        }
+                    }
+                }
+            }
+        }
+
+        Box(Modifier.fillMaxWidth().glass()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Come funziona", style = MaterialTheme.typography.titleMedium, color = Vetro.Ink)
                 Text(
@@ -353,6 +459,24 @@ fun SettingsScreen(vm: MainViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Vetro.InkFaint,
                 )
+
+                // Perche' a volte non succede niente, e da fuori non si
+                // capisce se e' rotto o se non c'era niente da fare.
+                val diagnosi by vm.diagnosiAudio.collectAsState()
+                TextButton(onClick = { vm.controllaAudio() }) {
+                    Text(
+                        "Non senti la differenza? Guarda cosa vede l'app",
+                        color = Vetro.InkFaint,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                diagnosi?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Vetro.InkSoft,
+                    )
+                }
             }
         }
 

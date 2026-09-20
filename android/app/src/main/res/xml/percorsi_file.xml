@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Espone solo la sottocartella dove finisce l'APK scaricato, non
+     tutta la cache dell'app: il programma di installazione di sistema
+     non ha motivo di vedere altro. -->
+<paths>
+    <cache-path name="aggiornamenti" path="aggiornamenti/" />
+</paths>
