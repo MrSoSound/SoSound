@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Il genitore e' AppCompat e non android:Theme.Material perche' i
+        pannelli del Cast SDK sono AppCompatDialog: su un tema che non
+        discende da AppCompat si rifiutano di aprirsi.
+    -->
+    <style name="Theme.SoSound" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowBackground">@android:color/background_dark</item>
+    </style>
+</resources>

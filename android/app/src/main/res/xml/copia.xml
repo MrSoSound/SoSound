@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Cosa Android puo' mettere nella copia dell'account (Android 12+).
+
+    Solo due cose: l'indice della libreria e il database delle playlist.
+    Sono l'elenco di cosa c'era — non la musica.
+
+    ## Perche'
+
+    Chi non sceglie una cartella tiene i file nello spazio privato
+    dell'app, che se ne va con l'app. I brani si riscaricano; una
+    playlist ricostruita a mano no. Questa e' l'unica strada che porta
+    quell'elenco oltre la disinstallazione senza chiedere una cartella.
+
+    ## Perche' non c'e' nessuna esclusione
+
+    Perche' non serve: dichiarando cosa includere, tutto il resto e' gia'
+    fuori. L'audio, le copertine e le preferenze non vengono copiati —
+    sono centinaia di megabyte che si riscaricano da soli, e riempire la
+    copia dell'account di canzoni sarebbe uno scambio pessimo.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="sosound.json" />
+        <include domain="database" path="sosound.db" />
+    </cloud-backup>
+    <!-- Il trasferimento diretto fra due telefoni: stesse regole. -->
+    <device-transfer>
+        <include domain="file" path="sosound.json" />
+        <include domain="database" path="sosound.db" />
+    </device-transfer>
+</data-extraction-rules>

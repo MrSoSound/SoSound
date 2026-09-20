@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Le stesse regole per Android 11 e precedenti, che usano un formato suo.
+    Dichiarando cosa includere, tutto il resto — audio, copertine,
+    preferenze — resta gia' fuori.
+-->
+<full-backup-content>
+    <include domain="file" path="sosound.json" />
+    <include domain="database" path="sosound.db" />
+</full-backup-content>

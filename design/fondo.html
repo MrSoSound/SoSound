@@ -1,0 +1,430 @@
+<title>SoSound — scegliere il fondo</title>
+
+<style>
+:root {
+  --page:     #0A0B0D;
+  --page-2:   #101216;
+  --line:     #1D2128;
+  --ink:      #E8EBEF;
+  --ink-2:    #9AA3AE;
+  --ink-3:    #5E6873;
+  --mark:     #7FD1AE;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased;
+}
+:focus-visible { outline: 2px solid var(--mark); outline-offset: 3px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 clamp(1rem, 3vw, 2.5rem); }
+
+header { padding: clamp(2rem, 6vw, 3.5rem) 0 1.5rem; }
+.eyebrow {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 .9rem;
+}
+h1 {
+  font-size: clamp(1.7rem, 4.5vw, 2.6rem); line-height: 1.05;
+  letter-spacing: -.03em; margin: 0 0 .9rem; text-wrap: balance;
+}
+.lede { max-width: 66ch; color: var(--ink-2); margin: 0; }
+
+/* ------------------------------------------------------- pannello scelte */
+
+.panel {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  padding: 1rem 0; margin-top: 1.5rem;
+}
+.choices { display: flex; gap: .55rem; flex-wrap: wrap; align-items: stretch; }
+.choice {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .8rem .5rem .55rem;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--page-2); color: var(--ink-2);
+  font: inherit; font-size: .84rem; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.choice:hover { border-color: #2C333D; color: var(--ink); }
+.choice[aria-pressed="true"] { border-color: var(--mark); color: var(--ink); }
+.chip {
+  width: 30px; height: 30px; border-radius: 7px; flex: 0 0 auto;
+  border: 1px solid rgba(255,255,255,.12);
+}
+.choice small { display: block; font-size: .66rem; color: var(--ink-3); font-family: var(--mono); }
+
+.readout {
+  margin-top: .9rem; display: flex; gap: 1.5rem; flex-wrap: wrap;
+  font-family: var(--mono); font-size: .72rem; color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.readout b { color: var(--ink-2); font-weight: 400; }
+.readout .ok { color: var(--mark); }
+.readout .no { color: #FF8FA3; }
+
+/* ------------------------------------------------------------- telefoni */
+
+.screens {
+  display: flex; gap: clamp(1rem, 2.5vw, 1.8rem);
+  overflow-x: auto; padding: 2rem 0 1rem; scrollbar-width: thin;
+}
+.col { display: flex; flex-direction: column; gap: .6rem; flex: 0 0 auto; }
+.cap {
+  font-family: var(--mono); font-size: .66rem; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-3); text-align: center;
+}
+.phone {
+  width: 286px; height: 604px; border-radius: 34px; padding: 8px;
+  background: #05070A; border: 1px solid var(--line);
+  box-shadow: 0 26px 64px -26px rgba(0,0,0,.95);
+  flex: 0 0 auto;
+}
+.screen {
+  width: 100%; height: 100%; border-radius: 27px; overflow: hidden;
+  position: relative; display: flex; flex-direction: column;
+  background: var(--g);
+  color: var(--fg);
+}
+/* le tre macchie del fondo */
+.screen::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(66% 46% at 24% 14%, var(--w1) 0%, transparent 70%),
+    radial-gradient(54% 40% at 84% 30%, var(--w2) 0%, transparent 68%),
+    radial-gradient(70% 48% at 44% 88%, var(--w3) 0%, transparent 72%);
+}
+/* chiusura in basso, sotto player e navigazione */
+.screen::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to bottom,
+    transparent 0%, transparent 62%, color-mix(in srgb, var(--g) 72%, transparent) 100%);
+}
+.screen > * { position: relative; z-index: 1; }
+
+.status {
+  display: flex; justify-content: space-between; padding: .5rem .9rem .1rem;
+  font-size: .6rem; color: var(--fg-3); font-variant-numeric: tabular-nums;
+}
+.body { flex: 1 1 auto; overflow: hidden; display: flex; flex-direction: column; }
+
+/* pannelli di vetro */
+.glass {
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 14px;
+}
+.field {
+  margin: .5rem .55rem; padding: .55rem .7rem;
+  display: flex; align-items: center; gap: .55rem;
+  font-size: .74rem; color: var(--fg-3);
+}
+.row {
+  margin: .18rem .55rem; padding: .5rem;
+  display: flex; align-items: center; gap: .6rem;
+}
+.art { width: 40px; height: 40px; border-radius: 9px; flex: 0 0 auto; }
+.tx { min-width: 0; flex: 1 1 auto; }
+.t1 { font-size: .77rem; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t2 { font-size: .64rem; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act { font-size: 1rem; color: var(--fg-3); flex: 0 0 auto; padding: 0 .2rem; }
+
+.empty {
+  flex: 1 1 auto; display: grid; place-items: center; padding: 2rem 1.6rem;
+  text-align: center; font-size: .76rem; color: var(--fg-3); line-height: 1.7;
+  white-space: pre-line;
+}
+
+/* card impostazioni */
+.card { margin: .55rem; padding: .8rem .85rem; }
+.card h4 { margin: 0 0 .35rem; font-size: .8rem; font-weight: 600; }
+.card p { margin: 0; font-size: .67rem; color: var(--fg-3); line-height: 1.5; }
+.card .big { font-size: .95rem; margin-bottom: .3rem; }
+.btn {
+  margin-top: .65rem; padding: .48rem; border-radius: 9px; text-align: center;
+  font-size: .74rem; font-weight: 600;
+}
+
+/* player + navigazione */
+.mini { margin: 0 .5rem; border-radius: 18px 18px 0 0; overflow: hidden; }
+.prog { height: 2px; background: rgba(255,255,255,.13); }
+.prog i { display: block; height: 100%; width: 41%; }
+.mrow { display: flex; align-items: center; gap: .55rem; padding: .5rem .6rem; }
+.nav {
+  display: flex; justify-content: space-around; padding: .5rem 0 .75rem;
+  font-size: .58rem; color: var(--fg-3);
+}
+.nav span { display: flex; flex-direction: column; align-items: center; gap: .15rem; }
+.nav .ico { font-size: .95rem; }
+
+/* schermata di ascolto */
+.np { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: .9rem; padding: 1.2rem 1.4rem; text-align: center; }
+.np .cover { width: 190px; height: 190px; border-radius: 18px; }
+.np h3 { margin: 0; font-size: 1.05rem; font-weight: 500; }
+.np p { margin: .2rem 0 0; font-size: .72rem; color: var(--fg-3); }
+.slider { width: 100%; height: 4px; border-radius: 3px; background: rgba(255,255,255,.14); position: relative; }
+.slider i { display: block; height: 100%; border-radius: 3px; width: 41%; }
+.slider b { position: absolute; top: 50%; left: 41%; width: 13px; height: 13px;
+            border-radius: 50%; transform: translate(-50%, -50%); }
+.times { width: 100%; display: flex; justify-content: space-between;
+         font-size: .6rem; color: var(--fg-3); font-variant-numeric: tabular-nums; }
+.ctl { display: flex; align-items: center; gap: 1.5rem; margin-top: .3rem; }
+.play { width: 60px; height: 60px; border-radius: 50%; display: grid; place-items: center;
+        font-size: 1.05rem; font-weight: 700; }
+
+footer { padding: 1rem 0 clamp(3rem, 8vw, 5rem); }
+footer p { max-width: 66ch; color: var(--ink-2); }
+code { font-family: var(--mono); font-size: .86em;
+       background: rgba(255,255,255,.06); padding: .1em .35em; border-radius: 3px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<header class="wrap">
+  <p class="eyebrow">SoSound · banco di prova · prima di compilare</p>
+  <h1>Scegli il fondo</h1>
+  <p class="lede">
+    Le tre schermate dell'app più quella di ascolto, con il fondo che si cambia qui
+    sopra. Sono ricostruite con le stesse misure, le stesse stringhe e gli stessi
+    pannelli di vetro del codice vero — quello che scegli è quello che compilo.
+  </p>
+</header>
+
+<div class="panel">
+  <div class="wrap">
+    <div class="choices" id="choices"></div>
+    <div class="readout" id="readout"></div>
+  </div>
+</div>
+
+<main class="wrap">
+  <div class="screens" id="screens"></div>
+</main>
+
+<footer class="wrap">
+  <p>
+    Il colore dei controlli continua a venire dalla copertina — qui è quello di
+    <em>Tre metri</em>. Cambiando fondo cambia il suo contrasto, ed è il numero
+    controllato qui sopra: la correzione automatica lo tiene sopra <code>4.5:1</code>
+    su qualunque fondo, ma su un fondo più chiaro deve schiarire di più la tinta,
+    e sotto una certa soglia il risultato comincia a slavarsi. Te lo segnalo se succede.
+  </p>
+</footer>
+
+<script>
+// ---------------------------------------------------------------- colore
+const gamma = c => c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4);
+const lum = ([r,g,b]) => 0.2126*gamma(r) + 0.7152*gamma(g) + 0.0722*gamma(b);
+const contrast = (a,b) => {
+  const la = lum(a), lb = lum(b);
+  return (Math.max(la,lb)+0.05)/(Math.min(la,lb)+0.05);
+};
+const hex2rgb = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16)/255);
+
+const INK_ON_ACCENT = hex2rgb("#1A1430");
+
+// Rifà il calcolo di TrackAccent.kt contro il fondo scelto.
+function toHsl([r,g,b]) {
+  const mx = Math.max(r,g,b), mn = Math.min(r,g,b), l = (mx+mn)/2;
+  if (mx === mn) return [0,0,l];
+  const d = mx-mn, s = l > .5 ? d/(2-mx-mn) : d/(mx+mn);
+  let h = mx === r ? ((g-b)/d + (g<b?6:0)) : mx === g ? ((b-r)/d + 2) : ((r-g)/d + 4);
+  return [h/6, s, l];
+}
+function toRgb([h,s,l]) {
+  if (s === 0) return [l,l,l];
+  const q = l < .5 ? l*(1+s) : l+s-l*s, p = 2*l-q;
+  const f = t => { if (t<0) t+=1; if (t>1) t-=1;
+    if (t < 1/6) return p+(q-p)*6*t; if (t < 1/2) return q;
+    if (t < 2/3) return p+(q-p)*(2/3-t)*6; return p; };
+  return [f(h+1/3), f(h), f(h-1/3)];
+}
+function accentFor(coverHex, groundHex) {
+  const ground = hex2rgb(groundHex);
+  let [h,s,l] = toHsl(hex2rgb(coverHex));
+  s = Math.max(s, 0.45);
+  let guard = 0;
+  const ok = () => {
+    const c = toRgb([h,s,l]);
+    return contrast(c, ground) >= 4.7 && contrast(INK_ON_ACCENT, c) >= 4.7;
+  };
+  while (guard < 120 && !ok()) { l = Math.min(0.95, l + 0.01); guard++; }
+  const rgb = toRgb([h,s,l]);
+  return {
+    hex: "#" + rgb.map(v => Math.round(v*255).toString(16).padStart(2,"0")).join(""),
+    onGround: contrast(rgb, ground),
+    onInk: contrast(INK_ON_ACCENT, rgb),
+  };
+}
+
+// --------------------------------------------------------------- proposte
+const PRESETS = [
+  { id:"grafite", nome:"Grafite", nota:"neutro, appena freddo",
+    g:"#101214", w1:"rgba(120,132,150,.13)", w2:"rgba(150,140,130,.07)", w3:"rgba(110,125,145,.11)" },
+  { id:"ardesia", nome:"Ardesia ✓", nota:"scelto — in uso",
+    g:"#0E1116", w1:"rgba(96,126,166,.16)", w2:"rgba(120,150,180,.08)", w3:"rgba(80,110,150,.14)" },
+  { id:"basalto", nome:"Basalto", nota:"neutro puro, piatto",
+    g:"#121315", w1:"rgba(140,140,144,.10)", w2:"rgba(140,140,144,.05)", w3:"rgba(130,130,136,.09)" },
+  { id:"fumo",    nome:"Fumo caldo", nota:"neutro con deriva calda",
+    g:"#141210", w1:"rgba(168,146,120,.13)", w2:"rgba(150,120,100,.07)", w3:"rgba(140,124,106,.11)" },
+  { id:"inchiostro", nome:"Inchiostro", nota:"quasi nero, niente macchie",
+    g:"#0A0B0C", w1:"rgba(120,126,136,.07)", w2:"transparent", w3:"rgba(110,116,128,.06)" },
+  { id:"viola",   nome:"Viola", nota:"com era prima",
+    g:"#0D0A18", w1:"rgba(110,76,216,.55)", w2:"rgba(216,70,126,.34)", w3:"rgba(44,107,224,.46)" },
+];
+
+let current = PRESETS[1];
+
+// ----------------------------------------------------------------- pezzi
+const COVER = "#2E6BD8";                 // copertina di «Tre metri»
+const art = c => `background:linear-gradient(145deg, ${c}, rgba(0,0,0,.42))`;
+
+const BRANI = [
+  ["Tre metri", "Colapesce Dimartino · 3:22", "#2E6BD8"],
+  ["Cose che non ho", "Brunori Sas · 4:31", "#0E7490"],
+  ["Verso sera", "Iosonouncane · IRA · 6:03", "#047857"],
+  ["Ancora un giro", "Le Luci della Centrale · 3:48", "#C2410C"],
+  ["Notte in provincia", "Cesare Basile · 4:12", "#B45309"],
+  ["Bad Ideas", "Kevin MacLeod · 0:28", "#9F1239"],
+];
+
+const RISULTATI = [
+  ["Tre metri", "Colapesce Dimartino · I mortali · 3:22", "#2E6BD8", "ok"],
+  ["Musica leggerissima", "Colapesce Dimartino · 3:04", "#6D28D9", "add"],
+  ["Splash", "Colapesce Dimartino · 3:31", "#0E7490", "add"],
+  ["Rosa e Olindo", "Colapesce Dimartino · 3:18", "#881337", "add"],
+];
+
+const player = a => `
+  <div class="mini glass">
+    <div class="prog"><i style="background:${a}"></i></div>
+    <div class="mrow">
+      <div class="art" style="width:36px;height:36px;border-radius:8px;${art(COVER)}"></div>
+      <div class="tx"><div class="t1">Tre metri</div><div class="t2">Colapesce Dimartino</div></div>
+      <span class="act" style="color:${a};font-size:1.15rem">❙❙</span>
+      <span class="act">⏭</span>
+    </div>
+  </div>`;
+
+const nav = (attiva, a) => `
+  <div class="nav">
+    ${[["Libreria","♫"],["Cerca","⌕"],["Impostazioni","⚙"]].map(([n,i]) => `
+      <span style="color:${n === attiva ? a : "var(--fg-3)"}">
+        <span class="ico">${i}</span>${n}
+      </span>`).join("")}
+  </div>`;
+
+function schermate(a) {
+  return [
+    ["Libreria", `
+      <div class="body">
+        <div class="field glass"><span>⌕</span><span>Filtra la tua musica</span></div>
+        ${BRANI.map(([t,s,c]) => `
+          <div class="row glass">
+            <div class="art" style="${art(c)}"></div>
+            <div class="tx"><div class="t1">${t}</div><div class="t2">${s}</div></div>
+            <span class="act">🗑</span>
+          </div>`).join("")}
+      </div>
+      ${player(a)}${nav("Libreria", a)}`],
+
+    ["Cerca", `
+      <div class="body">
+        <div class="field glass"><span>⌕</span><span style="color:var(--fg)">colapesce</span></div>
+        ${RISULTATI.map(([t,s,c,stato]) => `
+          <div class="row glass">
+            <div class="art" style="${art(c)}"></div>
+            <div class="tx"><div class="t1">${t}</div><div class="t2">${s}</div></div>
+            <span class="act" style="${stato === "ok" ? `color:${a}` : ""}">
+              ${stato === "ok" ? "✓" : "＋"}</span>
+          </div>`).join("")}
+      </div>
+      ${player(a)}${nav("Cerca", a)}`],
+
+    ["Impostazioni", `
+      <div class="body">
+        <div class="card glass">
+          <h4>Sul telefono</h4>
+          <div class="big">84 brani · 341,6 MB</div>
+          <p>I file stanno nello spazio privato dell'app: nessun altro programma
+             li vede, e disinstallando SoSound spariscono.</p>
+        </div>
+        <div class="card glass">
+          <h4>Motore di scaricamento</h4>
+          <p style="color:var(--fg);font-size:.72rem">yt-dlp 2026.09.14</p>
+          <p style="margin-top:.5rem">Se i download cominciano a fallire, quasi sempre è
+             perché YouTube ha cambiato qualcosa e yt-dlp è rimasto indietro.</p>
+          <div class="btn" style="background:${a};color:#1A1430">Aggiorna yt-dlp</div>
+        </div>
+        <div class="card glass">
+          <h4>Come funziona</h4>
+          <p>Tutto avviene sul telefono: la ricerca interroga il catalogo di YouTube
+             Music, il download lo fa yt-dlp che gira dentro l'app, e i file restano qui.</p>
+        </div>
+      </div>
+      ${player(a)}${nav("Impostazioni", a)}`],
+
+    ["In ascolto", `
+      <div class="np">
+        <div class="cover" style="${art(COVER)}"></div>
+        <div><h3>Tre metri</h3><p>Colapesce Dimartino · I mortali</p></div>
+        <div style="width:100%">
+          <div class="slider"><i style="background:${a}"></i><b style="background:${a}"></b></div>
+          <div class="times"><span>1:22</span><span>3:22</span></div>
+        </div>
+        <div class="ctl">
+          <span class="act" style="font-size:1.4rem">⏮</span>
+          <span class="play" style="background:${a};color:#1A1430">❙❙</span>
+          <span class="act" style="font-size:1.4rem">⏭</span>
+        </div>
+      </div>
+      ${nav("", a)}`],
+  ];
+}
+
+// ----------------------------------------------------------------- render
+function disegna(p) {
+  current = p;
+  const acc = accentFor(COVER, p.g);
+
+  document.getElementById("screens").innerHTML = schermate(acc.hex).map(([cap, html]) => `
+    <div class="col">
+      <div class="phone">
+        <div class="screen" style="
+          --g:${p.g}; --w1:${p.w1}; --w2:${p.w2}; --w3:${p.w3};
+          --fg:#E9ECF1; --fg-3:#8B939E;">
+          <div class="status"><span>21:14</span><span>◍ ▮</span></div>
+          ${html}
+        </div>
+      </div>
+      <p class="cap">${cap}</p>
+    </div>`).join("");
+
+  const ok = acc.onGround >= 4.5 && acc.onInk >= 4.5;
+  document.getElementById("readout").innerHTML = `
+    <span>fondo <b>${p.g.toUpperCase()}</b></span>
+    <span>accento ricalcolato <b>${acc.hex.toUpperCase()}</b></span>
+    <span>sul fondo <span class="${acc.onGround >= 4.5 ? "ok" : "no"}">${acc.onGround.toFixed(2)}:1</span></span>
+    <span>icona sull'accento <span class="${acc.onInk >= 4.5 ? "ok" : "no"}">${acc.onInk.toFixed(2)}:1</span></span>
+    <span>${ok ? "✓ contrasti a posto" : "✕ contrasto insufficiente"}</span>`;
+
+  [...document.querySelectorAll(".choice")].forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.id === p.id)));
+}
+
+document.getElementById("choices").innerHTML = PRESETS.map(p => `
+  <button class="choice" data-id="${p.id}" aria-pressed="false">
+    <span class="chip" style="background:${p.g}"></span>
+    <span>${p.nome}<small>${p.nota}</small></span>
+  </button>`).join("");
+
+document.getElementById("choices").addEventListener("click", e => {
+  const b = e.target.closest(".choice");
+  if (b) disegna(PRESETS.find(p => p.id === b.dataset.id));
+});
+
+disegna(PRESETS[1]);
+</script>

@@ -1,0 +1,1036 @@
+<title>SoSound — quattro direzioni visive</title>
+
+<style>
+/* ---------------------------------------------------------------------------
+   La pagina e' volutamente a tema unico, scuro. Non e' una dimenticanza:
+   si stanno valutando quattro interfacce scure, e un fondo chiaro
+   falserebbe il giudizio — l'occhio si adatta alla pagina, non allo
+   schermo del telefono. Tutti i colori sono dichiarati esplicitamente.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Neutri con una leggera deriva verso il blu: un grigio puro
+     sembrerebbe non scelto, e questi quattro accenti sono tutti caldi
+     o freddi in modo deciso. Il fondo deve stare indietro. */
+  --ground:      #0B0D10;
+  --ground-2:    #0F1216;
+  --line:        #1E242B;
+  --line-soft:   #171C22;
+  --ink:         #E8EDF2;
+  --ink-2:       #9DA9B5;
+  --ink-3:       #5F6B78;
+  --mark:        #7FD1AE;
+
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --serif: Georgia, "Iowan Old Style", "Times New Roman", serif;
+
+  --gutter: clamp(1.25rem, 4vw, 4rem);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--mark);
+  outline-offset: 3px;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* ------------------------------------------------------------ intestazione */
+
+header.top {
+  padding: clamp(3rem, 9vw, 6.5rem) 0 clamp(2rem, 5vw, 3.5rem);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 1.25rem;
+}
+
+h1 {
+  font-size: clamp(2.4rem, 7vw, 4.25rem);
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+  text-wrap: balance;
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--mark);
+}
+
+.lede {
+  max-width: 58ch;
+  font-size: clamp(1rem, 1.6vw, 1.15rem);
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.lede + .lede { margin-top: .9rem; }
+
+/* ------------------------------------------------------------- una banda */
+
+.dir {
+  padding: clamp(3rem, 8vw, 5.5rem) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dir__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+@media (min-width: 900px) {
+  .dir__head {
+    grid-template-columns: minmax(0, 22rem) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: start;
+  }
+}
+
+.dir__name {
+  font-size: clamp(1.9rem, 4vw, 2.6rem);
+  line-height: 1.05;
+  letter-spacing: -.03em;
+  margin: 0 0 .5rem;
+  color: var(--accent);
+}
+
+.dir__tag {
+  font-family: var(--mono);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 .9rem;
+}
+
+.dir__idea {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 62ch;
+}
+
+.dir__idea strong { color: var(--ink); font-weight: 600; }
+
+.dir__idea + .dir__idea { margin-top: .75rem; }
+
+/* scheda tecnica: sono dati, quindi mono e allineati */
+.spec {
+  margin: 1.5rem 0 0;
+  display: grid;
+  gap: .4rem;
+  font-family: var(--mono);
+  font-size: .76rem;
+}
+
+.spec div {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: .75rem;
+  align-items: baseline;
+}
+
+.spec dt { color: var(--ink-3); }
+.spec dd { margin: 0; color: var(--ink-2); }
+
+.swatches {
+  display: flex;
+  gap: .4rem;
+  margin-top: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.sw {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,.1);
+  position: relative;
+}
+
+.sw::after {
+  content: attr(data-hex);
+  position: absolute;
+  top: calc(100% + .35rem);
+  left: 0;
+  font-family: var(--mono);
+  font-size: .6rem;
+  color: var(--ink-3);
+  letter-spacing: .02em;
+}
+
+.swatches { margin-bottom: 1.4rem; }
+
+/* ------------------------------------------------------------- i telefoni */
+
+.phones {
+  display: flex;
+  gap: clamp(1rem, 3vw, 2rem);
+  overflow-x: auto;
+  padding-bottom: .5rem;
+  scrollbar-width: thin;
+}
+
+.phone {
+  flex: 0 0 auto;
+  width: 282px;
+  height: 596px;
+  border-radius: 34px;
+  padding: 9px;
+  background: #05070A;
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px -24px rgba(0,0,0,.9);
+}
+
+.screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--fg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.phone__label {
+  font-family: var(--mono);
+  font-size: .68rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: .7rem 0 0;
+  text-align: center;
+}
+
+.phone-col { display: flex; flex-direction: column; flex: 0 0 auto; }
+
+/* barra di stato finta: serve solo a dare la scala giusta */
+.statusbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: .55rem .95rem .2rem;
+  font-size: .62rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-3);
+  flex: 0 0 auto;
+}
+
+.statusbar span:last-child { letter-spacing: .08em; }
+
+.appbar {
+  padding: .5rem .95rem .6rem;
+  flex: 0 0 auto;
+}
+
+.applist {
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding: 0 .3rem;
+}
+
+/* riga di un brano */
+.row {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .45rem .65rem;
+}
+
+.art {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--art-radius);
+}
+
+.row__txt { min-width: 0; flex: 1 1 auto; }
+
+.row__t {
+  font-size: .78rem;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row__s {
+  font-size: .65rem;
+  color: var(--fg-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: .1rem;
+}
+
+.row__d {
+  font-size: .64rem;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+/* mini player + navigazione */
+.mini {
+  flex: 0 0 auto;
+  padding: .5rem .8rem;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+
+.nav {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: space-around;
+  padding: .5rem 0 .8rem;
+  font-size: .6rem;
+  color: var(--fg-3);
+}
+
+.nav b { color: var(--accent); font-weight: 600; }
+
+.icon {
+  width: 18px; height: 18px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* --------------------------------------------------------------- SOLCO */
+
+.solco {
+  --accent: #E0954A;
+  --bg: #14100C;
+  --surface: #1D1710;
+  --fg: #F2E8DC;
+  --fg-3: #907C64;
+  --art-radius: 50%;
+  font-family: var(--serif);
+}
+
+.solco .row__s, .solco .row__d, .solco .nav, .solco .statusbar {
+  font-family: var(--sans);
+}
+
+.solco .appbar h2 {
+  font-size: 1.4rem;
+  margin: 0;
+  letter-spacing: -.01em;
+  font-weight: 400;
+}
+
+.solco .search {
+  margin-top: .55rem;
+  padding: .4rem .7rem;
+  border-radius: 999px;
+  border: 1px solid #33291E;
+  font-size: .7rem;
+  color: var(--fg-3);
+  font-family: var(--sans);
+}
+
+.solco .art { box-shadow: inset 0 0 0 5px rgba(20,16,12,.55), inset 0 0 0 6px rgba(255,255,255,.07); }
+
+.solco .mini { background: var(--surface); border-top: 1px solid #2A2118; }
+
+/* --------------------------------------------------------------- VETRO */
+
+.vetro {
+  --accent: #A594FF;
+  --bg: #0D0A18;
+  --surface: rgba(255,255,255,.055);
+  --fg: #EDE9FA;
+  --fg-3: #8E86AD;
+  --art-radius: 9px;
+}
+
+/* La copertina sfocata dietro tutto: e' l'idea della direzione. */
+.vetro .screen::before {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(42% 38% at 28% 18%, #6E4CD8 0%, transparent 62%),
+    radial-gradient(46% 42% at 76% 32%, #D8467E 0%, transparent 60%),
+    radial-gradient(52% 46% at 46% 82%, #2C6BE0 0%, transparent 64%);
+  filter: blur(46px);
+  opacity: .62;
+  pointer-events: none;
+}
+
+.vetro .statusbar, .vetro .appbar, .vetro .applist,
+.vetro .mini, .vetro .nav { position: relative; z-index: 1; }
+
+.vetro .appbar h2 {
+  font-size: 1.35rem;
+  margin: 0;
+  font-weight: 650;
+  letter-spacing: -.025em;
+}
+
+.vetro .search {
+  margin-top: .55rem;
+  padding: .42rem .7rem;
+  border-radius: 11px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: .7rem;
+  color: var(--fg-3);
+  backdrop-filter: blur(8px);
+}
+
+.vetro .row {
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 13px;
+  margin: .3rem .35rem;
+  backdrop-filter: blur(10px);
+}
+
+.vetro .mini {
+  background: rgba(255,255,255,.08);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid rgba(255,255,255,.09);
+  border-radius: 15px 15px 0 0;
+}
+
+/* ------------------------------------------------------------- CONSOLE */
+
+.console {
+  --accent: #61D98B;
+  --bg: #080B09;
+  --surface: #0E130F;
+  --fg: #D6E5D9;
+  --fg-3: #5A7361;
+  --art-radius: 0;
+  font-family: var(--mono);
+}
+
+.console .appbar h2 {
+  font-size: .82rem;
+  margin: 0;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--accent);
+}
+
+.console .search {
+  margin-top: .5rem;
+  padding: .38rem .55rem;
+  border: 1px solid #1E2B21;
+  font-size: .66rem;
+  color: var(--fg-3);
+  border-radius: 0;
+}
+
+.console .row {
+  border-bottom: 1px solid #141C16;
+  padding: .42rem .6rem;
+}
+
+.console .row__t { font-size: .71rem; letter-spacing: -.01em; }
+.console .row__s { font-size: .6rem; }
+.console .art { border: 1px solid #22301F; }
+.console .mini { background: var(--surface); border-top: 1px solid var(--accent); }
+.console .nav { letter-spacing: .1em; text-transform: uppercase; font-size: .55rem; }
+
+/* ----------------------------------------------------------- NOTTURNO */
+
+.notturno {
+  --accent: #58B8AB;
+  --bg: #0B1012;
+  --surface: #101719;
+  --fg: #E4EDEC;
+  --fg-3: #6C8380;
+  --art-radius: 3px;
+}
+
+.notturno .appbar { padding: 1.3rem 1.15rem .8rem; }
+
+.notturno .appbar h2 {
+  font-size: 1.75rem;
+  margin: 0;
+  font-weight: 300;
+  letter-spacing: -.035em;
+}
+
+.notturno .search {
+  margin-top: .8rem;
+  padding: .3rem 0;
+  border-bottom: 1px solid #1C2628;
+  font-size: .72rem;
+  color: var(--fg-3);
+}
+
+.notturno .row { padding: .6rem 1.15rem; gap: .85rem; }
+.notturno .row__t { font-size: .8rem; font-weight: 400; }
+.notturno .mini { background: transparent; border-top: 1px solid #1A2426; padding: .65rem 1.15rem; }
+.notturno .nav { font-size: .58rem; letter-spacing: .06em; }
+
+/* ------------------------------------------- schermata "in riproduzione" */
+
+.np {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: 1.5rem 1.4rem;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.np__art {
+  width: 176px;
+  height: 176px;
+  border-radius: var(--art-radius);
+  flex: 0 0 auto;
+}
+
+.solco .np__art {
+  box-shadow: inset 0 0 0 26px rgba(20,16,12,.5), inset 0 0 0 27px rgba(255,255,255,.08),
+              0 16px 40px -14px rgba(0,0,0,.85);
+}
+
+.vetro .np__art { box-shadow: 0 20px 48px -14px rgba(0,0,0,.75); }
+.console .np__art { border: 1px solid #2A3A2C; }
+
+.np__t { font-size: 1rem; line-height: 1.25; margin: 0; }
+.np__s { font-size: .74rem; color: var(--fg-3); margin: .25rem 0 0; }
+
+.bar {
+  width: 100%;
+  height: 3px;
+  background: rgba(255,255,255,.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.console .bar { border-radius: 0; height: 2px; }
+
+.bar i { display: block; height: 100%; width: 38%; background: var(--accent); }
+
+.times {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: .6rem;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  margin-top: .35rem;
+  font-family: var(--sans);
+}
+
+.console .times { font-family: var(--mono); }
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: .3rem;
+}
+
+.play {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+}
+
+.console .play { border-radius: 0; width: 46px; height: 46px; }
+.notturno .play { background: transparent; border: 1px solid var(--accent); }
+
+/* copertine finte: gradienti, non immagini — restano nitide a ogni scala
+   e non fanno sembrare il mockup un collage di stock */
+.a1 { background: linear-gradient(140deg, #C2410C, #7C2D12 55%, #431407); }
+.a2 { background: linear-gradient(140deg, #0E7490, #155E75 50%, #083344); }
+.a3 { background: linear-gradient(140deg, #6D28D9, #4C1D95 55%, #2E1065); }
+.a4 { background: linear-gradient(140deg, #B45309, #78350F 55%, #451A03); }
+.a5 { background: linear-gradient(140deg, #047857, #065F46 55%, #022C22); }
+.a6 { background: linear-gradient(140deg, #9F1239, #881337 55%, #4C0519); }
+
+/* ----------------------------------------------------------- conclusione */
+
+footer.end {
+  padding: clamp(3rem, 7vw, 5rem) 0 clamp(4rem, 9vw, 7rem);
+}
+
+footer.end h2 {
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+  letter-spacing: -.025em;
+  margin: 0 0 1rem;
+}
+
+.pick {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 1.75rem;
+}
+
+@media (min-width: 760px) {
+  .pick { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.pick > div {
+  background: var(--ground-2);
+  padding: 1.1rem 1.25rem;
+}
+
+.pick h3 {
+  margin: 0 0 .4rem;
+  font-size: .82rem;
+  font-family: var(--mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent-local, var(--ink-2));
+}
+
+.pick p { margin: 0; font-size: .88rem; color: var(--ink-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <p class="eyebrow">SoSound · proposta di interfaccia · 19 settembre 2026</p>
+    <h1>Quattro modi di far vedere<br><em>la stessa musica</em></h1>
+    <p class="lede">
+      Quattro direzioni, non quattro varianti: cambiano la forma della copertina,
+      il carattere, il peso del fondo e quanto l'interfaccia si fa notare. Tutte
+      scure, tutte con l'accento portato verso la sua sfumatura bassa.
+    </p>
+    <p class="lede">
+      Ogni direzione è mostrata su due schermate — la libreria e l'ascolto — perché
+      è nel passaggio fra le due che una scelta grafica si rompe o tiene.
+    </p>
+  </div>
+</header>
+
+<main>
+
+<!-- ─────────────────────────────────────────────────────────────── SOLCO -->
+<section class="dir" style="--accent:#E0954A">
+  <div class="wrap">
+    <div class="dir__head">
+      <div>
+        <p class="dir__tag">Direzione 01</p>
+        <h2 class="dir__name">Solco</h2>
+        <div class="swatches">
+          <span class="sw" style="background:#14100C" data-hex="#14100C"></span>
+          <span class="sw" style="background:#1D1710" data-hex="#1D1710"></span>
+          <span class="sw" style="background:#E0954A" data-hex="#E0954A"></span>
+          <span class="sw" style="background:#F2E8DC" data-hex="#F2E8DC"></span>
+        </div>
+        <dl class="spec">
+          <div><dt>Carattere</dt><dd>Serif nei titoli, sans nei dati</dd></div>
+          <div><dt>Copertina</dt><dd>Cerchio, con il foro al centro</dd></div>
+          <div><dt>Fondo</dt><dd>Bruno caldo, non nero</dd></div>
+        </dl>
+      </div>
+      <div>
+        <p class="dir__idea">
+          <strong>L'idea: la musica come oggetto.</strong> La copertina è un disco,
+          non una miniatura — rotonda, con l'etichetta al centro. Il fondo è bruno
+          caldo invece che nero, e il serif nei titoli dà alla libreria il peso di
+          una collezione anziché di un elenco di file.
+        </p>
+        <p class="dir__idea">
+          È la direzione meno «app» delle quattro. Funziona benissimo se il piacere
+          sta nell'accumulare — vedere crescere una raccolta che è tua. Regge meno
+          se la usi solo per cercare una canzone al volo: il calore rallenta la lettura.
+        </p>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone-col">
+        <div class="phone"><div class="screen solco">
+          <div class="statusbar"><span>21:14</span><span>◍ ▮</span></div>
+          <div class="appbar">
+            <h2>La tua raccolta</h2>
+            <div class="search">Cerca fra 84 brani</div>
+          </div>
+          <div class="applist">
+            <div class="row"><div class="art a4"></div><div class="row__txt"><div class="row__t">Notte in provincia</div><div class="row__s">Cesare Basile · Sul retro</div></div><div class="row__d">4:12</div></div>
+            <div class="row"><div class="art a1"></div><div class="row__txt"><div class="row__t">Ancora un giro</div><div class="row__s">Le Luci della Centrale</div></div><div class="row__d">3:48</div></div>
+            <div class="row"><div class="art a6"></div><div class="row__txt"><div class="row__t">Bad Ideas</div><div class="row__s">Kevin MacLeod · Silent Film</div></div><div class="row__d">0:28</div></div>
+            <div class="row"><div class="art a5"></div><div class="row__txt"><div class="row__t">Verso sera</div><div class="row__s">Iosonouncane · IRA</div></div><div class="row__d">6:03</div></div>
+            <div class="row"><div class="art a2"></div><div class="row__txt"><div class="row__t">Cose che non ho</div><div class="row__s">Brunori Sas</div></div><div class="row__d">4:31</div></div>
+            <div class="row"><div class="art a3"></div><div class="row__txt"><div class="row__t">Tre metri</div><div class="row__s">Colapesce Dimartino</div></div><div class="row__d">3:22</div></div>
+          </div>
+          <div class="mini">
+            <div class="art a4" style="width:30px;height:30px"></div>
+            <div class="row__txt"><div class="row__t" style="font-size:.72rem">Notte in provincia</div><div class="row__s">Cesare Basile</div></div>
+            <div style="color:#E0954A;font-size:1.1rem">❙❙</div>
+          </div>
+          <div class="nav"><b>Raccolta</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">Libreria</p>
+      </div>
+
+      <div class="phone-col">
+        <div class="phone"><div class="screen solco">
+          <div class="statusbar"><span>21:16</span><span>◍ ▮</span></div>
+          <div class="np">
+            <div class="np__art a4"></div>
+            <div>
+              <p class="np__t">Notte in provincia</p>
+              <p class="np__s">Cesare Basile · Sul retro</p>
+            </div>
+            <div style="width:100%">
+              <div class="bar"><i></i></div>
+              <div class="times"><span>1:35</span><span>4:12</span></div>
+            </div>
+            <div class="controls">
+              <span style="color:#907C64">⏮</span>
+              <span class="play" style="color:#14100C;font-size:1.1rem">❙❙</span>
+              <span style="color:#907C64">⏭</span>
+            </div>
+          </div>
+          <div class="nav"><b>Raccolta</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">In ascolto</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─────────────────────────────────────────────────────────────── VETRO -->
+<section class="dir" style="--accent:#A594FF">
+  <div class="wrap">
+    <div class="dir__head">
+      <div>
+        <p class="dir__tag">Direzione 02</p>
+        <h2 class="dir__name">Vetro</h2>
+        <div class="swatches">
+          <span class="sw" style="background:#0D0A18" data-hex="#0D0A18"></span>
+          <span class="sw" style="background:#231C3D" data-hex="#231C3D"></span>
+          <span class="sw" style="background:#A594FF" data-hex="#A594FF"></span>
+          <span class="sw" style="background:#EDE9FA" data-hex="#EDE9FA"></span>
+        </div>
+        <dl class="spec">
+          <div><dt>Carattere</dt><dd>Sans stretto, molto marcato</dd></div>
+          <div><dt>Copertina</dt><dd>Sfocata dietro tutto</dd></div>
+          <div><dt>Fondo</dt><dd>Indaco, cambia col brano</dd></div>
+        </dl>
+      </div>
+      <div>
+        <p class="dir__idea">
+          <strong>L'idea: è la copertina a fare l'interfaccia.</strong> I colori del
+          brano in ascolto vengono sfocati e diventano il fondo di tutta l'app; le
+          liste galleggiano sopra su pannelli smerigliati. Cambiando canzone cambia
+          l'atmosfera dello schermo.
+        </p>
+        <p class="dir__idea">
+          È la più vistosa, e la più contemporanea — somiglia a quello che fanno oggi
+          i servizi grossi. Il rischio è noto: il testo su fondo variabile perde
+          contrasto quando la copertina è chiara, e va difeso con un velo scuro che
+          toglie un po' dell'effetto.
+        </p>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone-col">
+        <div class="phone"><div class="screen vetro">
+          <div class="statusbar"><span>21:14</span><span>◍ ▮</span></div>
+          <div class="appbar">
+            <h2>Libreria</h2>
+            <div class="search">Cerca fra 84 brani</div>
+          </div>
+          <div class="applist">
+            <div class="row"><div class="art a3"></div><div class="row__txt"><div class="row__t">Tre metri</div><div class="row__s">Colapesce Dimartino</div></div><div class="row__d">3:22</div></div>
+            <div class="row"><div class="art a2"></div><div class="row__txt"><div class="row__t">Cose che non ho</div><div class="row__s">Brunori Sas</div></div><div class="row__d">4:31</div></div>
+            <div class="row"><div class="art a5"></div><div class="row__txt"><div class="row__t">Verso sera</div><div class="row__s">Iosonouncane · IRA</div></div><div class="row__d">6:03</div></div>
+            <div class="row"><div class="art a1"></div><div class="row__txt"><div class="row__t">Ancora un giro</div><div class="row__s">Le Luci della Centrale</div></div><div class="row__d">3:48</div></div>
+            <div class="row"><div class="art a6"></div><div class="row__txt"><div class="row__t">Bad Ideas</div><div class="row__s">Kevin MacLeod</div></div><div class="row__d">0:28</div></div>
+          </div>
+          <div class="mini">
+            <div class="art a3" style="width:30px;height:30px"></div>
+            <div class="row__txt"><div class="row__t" style="font-size:.72rem">Tre metri</div><div class="row__s">Colapesce Dimartino</div></div>
+            <div style="color:#A594FF;font-size:1.1rem">❙❙</div>
+          </div>
+          <div class="nav"><b>Libreria</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">Libreria</p>
+      </div>
+
+      <div class="phone-col">
+        <div class="phone"><div class="screen vetro">
+          <div class="statusbar"><span>21:16</span><span>◍ ▮</span></div>
+          <div class="np">
+            <div class="np__art a3"></div>
+            <div>
+              <p class="np__t" style="font-weight:650">Tre metri</p>
+              <p class="np__s">Colapesce Dimartino</p>
+            </div>
+            <div style="width:100%">
+              <div class="bar"><i></i></div>
+              <div class="times"><span>1:16</span><span>3:22</span></div>
+            </div>
+            <div class="controls">
+              <span style="color:#8E86AD">⏮</span>
+              <span class="play" style="color:#1A1430;font-size:1.1rem">❙❙</span>
+              <span style="color:#8E86AD">⏭</span>
+            </div>
+          </div>
+          <div class="nav"><b>Libreria</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">In ascolto</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────────────────────────────────────────── CONSOLE -->
+<section class="dir" style="--accent:#61D98B">
+  <div class="wrap">
+    <div class="dir__head">
+      <div>
+        <p class="dir__tag">Direzione 03</p>
+        <h2 class="dir__name">Console</h2>
+        <div class="swatches">
+          <span class="sw" style="background:#080B09" data-hex="#080B09"></span>
+          <span class="sw" style="background:#0E130F" data-hex="#0E130F"></span>
+          <span class="sw" style="background:#61D98B" data-hex="#61D98B"></span>
+          <span class="sw" style="background:#D6E5D9" data-hex="#D6E5D9"></span>
+        </div>
+        <dl class="spec">
+          <div><dt>Carattere</dt><dd>Monospaziato, tutto</dd></div>
+          <div><dt>Copertina</dt><dd>Quadrata, spigolo vivo</dd></div>
+          <div><dt>Fondo</dt><dd>Quasi nero, verde fosforo</dd></div>
+        </dl>
+      </div>
+      <div>
+        <p class="dir__idea">
+          <strong>L'idea: è un attrezzo, e lo dice.</strong> Niente angoli
+          arrotondati, niente ombre, tutto monospaziato e allineato a griglia.
+          Mostra quello che le altre nascondono — formato, bitrate, peso del file,
+          la coda come un registro che scorre.
+        </p>
+        <p class="dir__idea">
+          È la direzione che prende sul serio quello che SoSound è davvero: una cosa
+          che ti sei costruito. Più leggibile di quanto sembri, perché il
+          monospaziato in colonna si scandisce bene. Ma è una scelta di gusto netta,
+          e a qualcuno sembrerà spartana.
+        </p>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone-col">
+        <div class="phone"><div class="screen console">
+          <div class="statusbar"><span>21:14</span><span>◍ ▮</span></div>
+          <div class="appbar">
+            <h2>libreria · 84</h2>
+            <div class="search">&gt; cerca_</div>
+          </div>
+          <div class="applist">
+            <div class="row"><div class="art a5"></div><div class="row__txt"><div class="row__t">Verso sera</div><div class="row__s">Iosonouncane · opus 142k · 6.1 MB</div></div><div class="row__d">6:03</div></div>
+            <div class="row"><div class="art a2"></div><div class="row__txt"><div class="row__t">Cose che non ho</div><div class="row__s">Brunori Sas · opus 138k · 4.5 MB</div></div><div class="row__d">4:31</div></div>
+            <div class="row"><div class="art a3"></div><div class="row__txt"><div class="row__t">Tre metri</div><div class="row__s">Colapesce · opus 141k · 3.4 MB</div></div><div class="row__d">3:22</div></div>
+            <div class="row"><div class="art a1"></div><div class="row__txt"><div class="row__t">Ancora un giro</div><div class="row__s">Le Luci · opus 135k · 3.9 MB</div></div><div class="row__d">3:48</div></div>
+            <div class="row"><div class="art a6"></div><div class="row__txt"><div class="row__t">Bad Ideas</div><div class="row__s">K. MacLeod · opus 131k · 0.5 MB</div></div><div class="row__d">0:28</div></div>
+          </div>
+          <div class="mini">
+            <div class="art a5" style="width:30px;height:30px"></div>
+            <div class="row__txt"><div class="row__t" style="font-size:.69rem">Verso sera</div><div class="row__s">02:14 / 06:03</div></div>
+            <div style="color:#61D98B;font-size:1rem">❙❙</div>
+          </div>
+          <div class="nav"><b>lib</b><span>cerca</span><span>conf</span></div>
+        </div></div>
+        <p class="phone__label">Libreria</p>
+      </div>
+
+      <div class="phone-col">
+        <div class="phone"><div class="screen console">
+          <div class="statusbar"><span>21:16</span><span>◍ ▮</span></div>
+          <div class="np">
+            <div class="np__art a5"></div>
+            <div>
+              <p class="np__t" style="font-size:.88rem">Verso sera</p>
+              <p class="np__s">Iosonouncane · IRA · 2021</p>
+              <p class="np__s" style="font-size:.62rem;margin-top:.5rem">opus · 142 kbps · 6.1 MB</p>
+            </div>
+            <div style="width:100%">
+              <div class="bar"><i></i></div>
+              <div class="times"><span>02:14</span><span>06:03</span></div>
+            </div>
+            <div class="controls">
+              <span style="color:#5A7361">[◀]</span>
+              <span class="play" style="color:#080B09;font-size:1rem">❙❙</span>
+              <span style="color:#5A7361">[▶]</span>
+            </div>
+          </div>
+          <div class="nav"><b>lib</b><span>cerca</span><span>conf</span></div>
+        </div></div>
+        <p class="phone__label">In ascolto</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ──────────────────────────────────────────────────────────── NOTTURNO -->
+<section class="dir" style="--accent:#58B8AB">
+  <div class="wrap">
+    <div class="dir__head">
+      <div>
+        <p class="dir__tag">Direzione 04</p>
+        <h2 class="dir__name">Notturno</h2>
+        <div class="swatches">
+          <span class="sw" style="background:#0B1012" data-hex="#0B1012"></span>
+          <span class="sw" style="background:#101719" data-hex="#101719"></span>
+          <span class="sw" style="background:#58B8AB" data-hex="#58B8AB"></span>
+          <span class="sw" style="background:#E4EDEC" data-hex="#E4EDEC"></span>
+        </div>
+        <dl class="spec">
+          <div><dt>Carattere</dt><dd>Sans leggero, corpo grande</dd></div>
+          <div><dt>Copertina</dt><dd>Piccola, quasi un segno</dd></div>
+          <div><dt>Fondo</dt><dd>Verde-azzurro spento</dd></div>
+        </dl>
+      </div>
+      <div>
+        <p class="dir__idea">
+          <strong>L'idea: sparire.</strong> Molto spazio, poche righe, nessun
+          contorno, nessun pannello. Il testo è grande e sottile, l'accento compare
+          solo dove sta succedendo qualcosa. Niente di quello che vedi sullo schermo
+          chiede attenzione.
+        </p>
+        <p class="dir__idea">
+          È pensata per il momento in cui l'app si usa davvero: gli auricolari già in
+          orecchio, al buio, con un gesto solo. Il prezzo è la densità — in una
+          schermata ci stanno sei brani invece di dieci, e con una libreria grande
+          si scorre di più.
+        </p>
+      </div>
+    </div>
+
+    <div class="phones">
+      <div class="phone-col">
+        <div class="phone"><div class="screen notturno">
+          <div class="statusbar"><span>21:14</span><span>◍ ▮</span></div>
+          <div class="appbar">
+            <h2>Libreria</h2>
+            <div class="search">Cerca</div>
+          </div>
+          <div class="applist">
+            <div class="row"><div class="art a2"></div><div class="row__txt"><div class="row__t">Cose che non ho</div><div class="row__s">Brunori Sas</div></div><div class="row__d">4:31</div></div>
+            <div class="row"><div class="art a5"></div><div class="row__txt"><div class="row__t">Verso sera</div><div class="row__s">Iosonouncane</div></div><div class="row__d">6:03</div></div>
+            <div class="row"><div class="art a3"></div><div class="row__txt"><div class="row__t">Tre metri</div><div class="row__s">Colapesce Dimartino</div></div><div class="row__d">3:22</div></div>
+            <div class="row"><div class="art a1"></div><div class="row__txt"><div class="row__t">Ancora un giro</div><div class="row__s">Le Luci della Centrale</div></div><div class="row__d">3:48</div></div>
+            <div class="row"><div class="art a4"></div><div class="row__txt"><div class="row__t">Notte in provincia</div><div class="row__s">Cesare Basile</div></div><div class="row__d">4:12</div></div>
+          </div>
+          <div class="mini">
+            <div class="row__txt"><div class="row__t" style="font-size:.74rem">Cose che non ho</div><div class="row__s">Brunori Sas</div></div>
+            <div style="color:#58B8AB;font-size:1.05rem">❙❙</div>
+          </div>
+          <div class="nav"><b>Libreria</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">Libreria</p>
+      </div>
+
+      <div class="phone-col">
+        <div class="phone"><div class="screen notturno">
+          <div class="statusbar"><span>21:16</span><span>◍ ▮</span></div>
+          <div class="np">
+            <div class="np__art a2"></div>
+            <div>
+              <p class="np__t" style="font-weight:300;font-size:1.15rem">Cose che non ho</p>
+              <p class="np__s">Brunori Sas</p>
+            </div>
+            <div style="width:100%">
+              <div class="bar"><i></i></div>
+              <div class="times"><span>1:42</span><span>4:31</span></div>
+            </div>
+            <div class="controls">
+              <span style="color:#6C8380">⏮</span>
+              <span class="play" style="color:#58B8AB;font-size:1rem">❙❙</span>
+              <span style="color:#6C8380">⏭</span>
+            </div>
+          </div>
+          <div class="nav"><b>Libreria</b><span>Cerca</span><span>Impostazioni</span></div>
+        </div></div>
+        <p class="phone__label">In ascolto</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="end">
+  <div class="wrap">
+    <h2>Come sceglierla</h2>
+    <p class="lede">
+      Non c'è una migliore. Le quattro rispondono a domande diverse, e la domanda
+      giusta è: <em>com'è il momento in cui apri questa app?</em>
+    </p>
+
+    <div class="pick">
+      <div style="--accent-local:#E0954A">
+        <h3>Scegli Solco se…</h3>
+        <p>ti piace vedere la raccolta crescere, e apri l'app anche solo per
+        guardare cosa hai.</p>
+      </div>
+      <div style="--accent-local:#A594FF">
+        <h3>Scegli Vetro se…</h3>
+        <p>vuoi che faccia effetto — a te e a chi ti guarda lo schermo da sopra
+        la spalla.</p>
+      </div>
+      <div style="--accent-local:#61D98B">
+        <h3>Scegli Console se…</h3>
+        <p>ti fa piacere che si veda che è roba tua, costruita apposta, e vuoi
+        i numeri sott'occhio.</p>
+      </div>
+      <div style="--accent-local:#58B8AB">
+        <h3>Scegli Notturno se…</h3>
+        <p>la usi soprattutto al buio, con gli auricolari già addosso, e vuoi
+        toccarla il meno possibile.</p>
+      </div>
+    </div>
+
+    <p class="lede" style="margin-top:2rem">
+      Si possono anche incrociare: la densità di Console con i colori di Notturno,
+      o le copertine rotonde di Solco dentro l'impianto di Vetro. Dimmi quale ti
+      convince e da cosa la prenderesti.
+    </p>
+  </div>
+</footer>

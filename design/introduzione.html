@@ -1,0 +1,147 @@
+<title>SoSound — l'introduzione al primo avvio</title>
+
+<style>
+:root {
+  --g: #0E1116; --ink: #E9ECF1; --ink2: #B4BCC6; --ink3: #8B939E;
+  --accent: #A594FF; --line: #1D2128;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin:0; background:#07090C; color:var(--ink); font-family:var(--sans); line-height:1.55; }
+.wrap { max-width:1240px; margin:0 auto; padding:2rem clamp(1rem,3vw,2.5rem) 4rem; }
+h1 { font-size:1.9rem; letter-spacing:-.03em; margin:0 0 .5rem; }
+.lede { color:var(--ink2); max-width:66ch; margin:0 0 2rem; }
+.riga { display:flex; gap:1.4rem; flex-wrap:wrap; align-items:flex-start; }
+.cella { text-align:center; }
+.cella > p { margin:.6rem 0 0; font-family:var(--mono); font-size:.64rem; color:var(--ink3); }
+
+.phone { width:300px; height:620px; border-radius:34px; padding:9px;
+         background:#05070A; border:1px solid var(--line);
+         box-shadow:0 24px 60px -26px rgba(0,0,0,.9); }
+.screen { width:100%; height:100%; border-radius:26px; overflow:hidden; position:relative;
+          background:var(--g); display:flex; flex-direction:column; padding:0 24px; }
+.screen::before { content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(66% 46% at 24% 14%, rgba(96,126,166,.16) 0%, transparent 70%),
+    radial-gradient(54% 40% at 84% 30%, rgba(120,150,180,.08) 0%, transparent 68%),
+    radial-gradient(70% 48% at 44% 88%, rgba(80,110,150,.14) 0%, transparent 72%); }
+.screen > * { position:relative; z-index:1; }
+
+.salta { text-align:right; padding-top:12px; font-size:.78rem; color:var(--ink3); }
+.mezzo { flex:1; display:flex; flex-direction:column; align-items:center;
+         justify-content:center; text-align:center; }
+.tondo { width:84px; height:84px; border-radius:50%; background:rgba(255,255,255,.12);
+         display:grid; place-items:center; font-size:2rem; color:var(--accent); }
+h2.t { font-size:1.55rem; margin:22px 0 12px; letter-spacing:-.02em; font-weight:500; }
+p.c { font-size:.84rem; color:var(--ink2); margin:0; white-space:pre-line; }
+.pill { margin-top:20px; width:100%; background:rgba(255,255,255,.08);
+        border:1px solid rgba(255,255,255,.10); border-radius:14px; padding:14px;
+        display:flex; align-items:center; gap:10px; font-size:.8rem; }
+.bordo { margin-top:20px; width:100%; border:1px solid rgba(255,255,255,.22);
+         border-radius:22px; padding:11px; font-size:.82rem; color:var(--ink); }
+.minuscolo { font-size:.7rem; color:var(--ink3); margin-top:8px; }
+
+.passo { display:flex; gap:14px; text-align:left; width:100%; padding:10px 0; }
+.passo .ico { width:42px; height:42px; border-radius:50%; background:rgba(255,255,255,.08);
+              display:grid; place-items:center; color:var(--accent); flex:0 0 auto; font-size:1.05rem; }
+.passo b { font-size:.86rem; font-weight:600; display:block; }
+.passo span { font-size:.73rem; color:var(--ink3); }
+
+.punti { display:flex; justify-content:center; gap:8px; padding-bottom:10px; }
+.punti i { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.2); display:block; }
+.punti i.on { width:9px; height:9px; background:var(--accent); }
+.tasti { display:flex; gap:10px; padding-bottom:28px; }
+.tasto { flex:1; border-radius:22px; padding:11px; text-align:center; font-size:.84rem; font-weight:600; }
+.pieno { background:var(--accent); color:#121619; }
+.vuoto { border:1px solid rgba(255,255,255,.22); color:var(--ink); }
+</style>
+
+<div class="wrap">
+  <h1>L'introduzione</h1>
+  <p class="lede">
+    Quattro schermate al primo avvio, saltabili in qualunque momento. La cartella
+    viene per prima perché è l'unico momento in cui sceglierla non costa niente:
+    la libreria è vuota, quindi non c'è nulla da spostare né da fondere.
+  </p>
+  <div class="riga" id="out"></div>
+</div>
+
+<script>
+function schermo({ salta, corpo, punto, tasti }) {
+  const p = [0,1,2,3].map(i => `<i class="${i===punto?"on":""}"></i>`).join("");
+  return `<div class="phone"><div class="screen">
+    <div class="salta">${salta}</div>
+    <div class="mezzo">${corpo}</div>
+    <div class="punti">${p}</div>
+    <div class="tasti">${tasti}</div>
+  </div></div>`;
+}
+
+const avanti = '<div class="tasto pieno" style="flex:2">Avanti</div>';
+const conIndietro = '<div class="tasto vuoto">Indietro</div><div class="tasto pieno">Avanti</div>';
+
+const schermate = [
+  ["1 · Benvenuto", schermo({
+    salta: "Salta", punto: 0, tasti: avanti,
+    corpo: `
+      <svg width="132" height="132" viewBox="0 0 108 108">
+        <path d="M 67 34 C 67 24, 54 20, 47 29 C 40 38, 46 50, 56 57
+                 C 67 64, 67 76, 55 81 C 44 85, 33 78, 35 67
+                 C 37 57, 50 56, 53 66 C 55 74, 46 79, 41 73"
+              fill="none" stroke="#A594FF" stroke-width="7.5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 67 34 C 69 26, 67 20, 60 19" fill="none" stroke="#A594FF"
+              stroke-width="7.5" stroke-linecap="round"/>
+      </svg>
+      <h2 class="t">SoSound</h2>
+      <p class="c">La tua musica, scaricata sul telefono e tua per sempre.
+
+Niente abbonamento, niente account, niente server: tutto avviene qui dentro.</p>`,
+  })],
+
+  ["2 · La cartella", schermo({
+    salta: "Salta", punto: 1, tasti: conIndietro,
+    corpo: `
+      <div class="tondo" style="font-size:1.6rem">▣</div>
+      <h2 class="t">Dove tenere la musica</h2>
+      <p class="c">Scegli una cartella — meglio su Google Drive — e il backup vivrà fuori dal telefono: se lo perdi o lo cambi, riselezioni la cartella e ritrovi tutto.
+
+Senza, i brani restano dentro l'app e spariscono disinstallandola.</p>
+      <div class="bordo">Scegli una cartella</div>
+      <div class="minuscolo">Puoi anche farlo dopo, dalle impostazioni.</div>`,
+  })],
+
+  ["3 · Come funziona", schermo({
+    salta: "Salta", punto: 2, tasti: conIndietro,
+    corpo: `
+      <h2 class="t">Come funziona</h2>
+      <div class="passo"><div class="ico">⌕</div><div>
+        <b>Cerca e tocca</b>
+        <span>Scrivi una canzone e toccala. Parte. Se non ce l'hai, viene scaricata prima — non devi fare altro.</span>
+      </div></div>
+      <div class="passo"><div class="ico">▶</div><div>
+        <b>Suona anche a schermo spento</b>
+        <span>Con gli auricolari, in tasca, senza rete. I file sono sul telefono, quindi funziona ovunque.</span>
+      </div></div>
+      <div class="passo"><div class="ico">⋮</div><div>
+        <b>I tre puntini aprono tutto</b>
+        <span>Su ogni brano: il titolo per intero, l'artista, l'album, e da lì lo aggiungi a una playlist o alla coda.</span>
+      </div></div>`,
+  })],
+
+  ["4 · Le playlist", schermo({
+    salta: "Chiudi", punto: 3,
+    tasti: '<div class="tasto vuoto">Indietro</div><div class="tasto pieno">Importa una playlist</div>',
+    corpo: `
+      <div class="tondo">≡+</div>
+      <h2 class="t">Porta le tue playlist</h2>
+      <p class="c">Hai una playlist su Spotify? Copia il link di condivisione e incollalo: SoSound cerca i brani uno per uno e te li mostra prima di scaricarli.
+
+Nessun account da collegare. Funziona anche con un file esportato, o con un elenco scritto a mano.</p>`,
+  })],
+];
+
+document.getElementById("out").innerHTML =
+  schermate.map(([nome, html]) => `<div class="cella">${html}<p>${nome}</p></div>`).join("");
+</script>

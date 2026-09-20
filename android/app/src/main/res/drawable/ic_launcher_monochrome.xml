@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La stessa S, in tinta unita. Da Android 13 il sistema tinge le icone col
+  colore del tema: senza questo strato lo fa da se' schiacciando fondo e
+  disegno insieme, e il segno sparisce.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M 67,34 C 67,24 54,20 47,29 C 40,38 46,50 56,57 C 67,64 67,76 55,81 C 44,85 33,78 35,67 C 37,57 50,56 53,66 C 55,74 46,79 41,73"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+    <path
+        android:pathData="M 67,34 C 69,26 67,20 60,19"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

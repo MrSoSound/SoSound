@@ -1,0 +1,18 @@
+server/.venv/
+__pycache__/
+*.pyc
+musica/
+dati/
+cookies/
+.env
+local.properties
+android/.gradle/
+android/build/
+android/app/build/
+*.apk
+*.keystore
+
+# La chiave di firma e la sua password: fuori da git per sempre.
+*.jks
+keystore.properties
+android/keystore.properties

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SoSound</string>
+    <string name="download_channel_name">Scaricamenti</string>
+    <string name="download_channel_description">Avanzamento dei brani salvati sul telefono</string>
+</resources>

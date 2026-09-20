@@ -1,0 +1,204 @@
+<title>SoSound — l'icona</title>
+
+<style>
+:root {
+  --ground: #0E1116;
+  --ink: #E9ECF1;
+  --ink-2: #B4BCC6;
+  --ink-3: #8B939E;
+  --line: #1D2128;
+  --accent: #A594FF;
+  --ok: #7FD1AE;
+  --no: #FF8FA3;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: #07090C; color: var(--ink); font-family: var(--sans); line-height: 1.6; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 clamp(1rem,3vw,2.5rem); }
+header { padding: clamp(2.5rem,7vw,4.5rem) 0 1.5rem; }
+.eyebrow {
+  font-family: var(--mono); font-size: .68rem; letter-spacing: .18em;
+  text-transform: uppercase; color: var(--ink-3); margin: 0 0 1rem;
+}
+h1 { font-size: clamp(1.9rem,5vw,2.9rem); line-height: 1.05; letter-spacing: -.03em; margin: 0 0 1rem; }
+h1 em { font-style: normal; color: var(--accent); }
+.lede { color: var(--ink-2); max-width: 64ch; margin: 0; }
+.lede + .lede { margin-top: .8rem; }
+section { padding: clamp(2rem,5vw,3.2rem) 0; border-top: 1px solid var(--line); }
+h2 { font-size: clamp(1.15rem,2.4vw,1.45rem); letter-spacing: -.02em; margin: 0 0 .9rem; }
+.riga { display: flex; gap: 1.4rem; flex-wrap: wrap; align-items: flex-end; margin-top: 1.2rem; }
+.cella { text-align: center; }
+.cella p { margin: .5rem 0 0; font-family: var(--mono); font-size: .62rem; color: var(--ink-3); }
+.tile { border-radius: 22.5%; overflow: hidden; background: var(--ground); display: block; }
+.tile.tonda { border-radius: 50%; }
+svg { display: block; }
+.guida { opacity: .22; }
+.nota {
+  margin-top: 1.4rem; padding: 1rem 1.2rem; border: 1px solid var(--line);
+  border-radius: 11px; background: rgba(255,255,255,.03);
+}
+.nota p { margin: 0; color: var(--ink-2); font-size: .92rem; max-width: 66ch; }
+.nota p + p { margin-top: .6rem; }
+.verdetto { font-family: var(--mono); font-size: .68rem; letter-spacing: .04em; }
+.si { color: var(--ok); } .nope { color: var(--no); }
+code { font-family: var(--mono); font-size: .85em; background: rgba(255,255,255,.06); padding: .1em .35em; border-radius: 3px; }
+</style>
+
+<header class="wrap">
+  <p class="eyebrow">SoSound · icona dell'app</p>
+  <h1>Una S che è anche <em>una chiave di sol</em></h1>
+  <p class="lede">
+    La S condivisa fra «So» e «Sound», con i due segni che richiamano una chiave:
+    il <strong>riccio</strong> in basso e il <strong>guizzo</strong> che continua
+    il tratto in alto. Senza quelli resta una S elegante e basta — le prime prove
+    lo hanno dimostrato.
+  </p>
+</header>
+
+<main class="wrap">
+  <section>
+    <h2>Quella scelta</h2>
+    <div class="riga" id="scelta"></div>
+    <div class="nota">
+      <p>
+        Sta tutta dentro il cerchio di raggio 33 — la zona che ogni lanciatore
+        garantisce visibile. Sbordando, il ritaglio tondo si mangerebbe proprio il
+        riccio, cioè l'unica cosa che distingue questo segno da una S qualunque.
+      </p>
+      <p>
+        È disegnata come <strong>tratto</strong> e non come sagoma: lo spessore è
+        un numero, non un contorno da ridisegnare. Il fondo è
+        <code>#0E1116</code>, lo stesso dell'app, così l'icona e la schermata che
+        apre sembrano la stessa cosa.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Le scartate, e perché</h2>
+    <div class="riga" id="scartate"></div>
+    <div class="nota">
+      <p><span class="verdetto nope">✗ asta passante</span> — l'asta verticale che
+      attraversa tutto il segno è la cosa più riconoscibile di una chiave di sol,
+      ma su una S produce <strong>un simbolo del dollaro</strong>. Per un'app
+      musicale è l'ultimo messaggio che si vuole dare.</p>
+      <p><span class="verdetto nope">✗ tratto unico</span> — elegante in grande,
+      ma a 48 px legge come un <strong>«2»</strong>.</p>
+      <p><span class="verdetto nope">✗ riccio stretto</span> — a 48 px il buco del
+      riccio si chiude e diventa una macchia. Quella scelta ha il riccio più
+      aperto e il tratto più magro proprio per questo.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>La scritta intera: perché non nell'icona</h2>
+    <p class="lede">
+      «So» sopra e «ound» sotto, con la S in comune, è un'idea che funziona — ma
+      non a 48 px, che è la dimensione a cui l'icona si vede davvero.
+    </p>
+    <div class="riga" id="parola"></div>
+    <div class="nota">
+      <p>
+        A 192 px si legge. A 64 diventa faticosa. A 48 è una macchia: il lanciatore
+        non è il posto per una parola di cinque lettere.
+      </p>
+      <p>
+        Dove invece sta benissimo è <strong>dentro l'app</strong> — in cima alle
+        impostazioni, o su una schermata di avvio. Se la vuoi lì, il disegno è già
+        pronto: dimmelo e la metto.
+      </p>
+    </div>
+  </section>
+</main>
+
+<script>
+const G = "#0E1116", A = "#A594FF", W = "#E9ECF1";
+
+/* Quella scelta: riccio aperto, tratto magro, tutto dentro la zona sicura. */
+const SCELTA = `
+  M 67 34 C 67 24, 54 20, 47 29
+  C 40 38, 46 50, 56 57
+  C 67 64, 67 76, 55 81
+  C 44 85, 33 78, 35 67
+  C 37 57, 50 56, 53 66
+  C 55 74, 46 79, 41 73
+`;
+const SCELTA_GUIZZO = "M 67 34 C 69 26, 67 20, 60 19";
+
+/* Le scartate. */
+const DOLLARO_ASTA = "M 60 14 C 63 36, 56 62, 50 92";
+const DOLLARO_PANCE = `
+  M 66 33 C 66 23, 53 20, 46 28
+  C 38 37, 43 50, 55 57
+  C 67 64, 68 77, 57 83
+  C 47 88, 36 82, 37 72
+`;
+const DOLLARO_SPIR = "M 37 72 C 32 65, 23 69, 25 77 C 27 84, 37 85, 40 77";
+const DUE = `
+  M 46 26 C 44 15, 58 10, 64 19
+  C 70 28, 64 38, 54 46
+  C 43 55, 40 64, 50 70
+  C 61 76, 66 86, 56 91
+  C 45 96, 33 89, 34 78
+  C 35 70, 45 69, 46 77
+`;
+const STRETTA = `
+  M 66 34 C 66 24, 54 21, 48 29
+  C 41 38, 46 49, 56 56
+  C 67 63, 67 75, 56 80
+  C 46 84, 36 78, 37 68
+  C 38 60, 48 59, 51 66
+  C 53 72, 47 76, 43 72
+`;
+
+function tile({ size, paths, stroke = 7.5, colore = A, fondo = G, tonda = false, guida = false }) {
+  const inner = paths.map(d =>
+    `<path d="${d}" fill="none" stroke="${colore}" stroke-width="${stroke}"
+       stroke-linecap="round" stroke-linejoin="round"/>`).join("");
+  const cerchio = guida
+    ? `<circle class="guida" cx="54" cy="54" r="33" fill="none" stroke="${W}" stroke-width="1"/>` : "";
+  return `<svg class="tile ${tonda ? "tonda" : ""}" width="${size}" height="${size}" viewBox="0 0 108 108">
+    <rect width="108" height="108" fill="${fondo}"/>${inner}${cerchio}
+  </svg>`;
+}
+
+function parola(size) {
+  const s = 7.5 / .6;
+  return `<svg class="tile" width="${size}" height="${size}" viewBox="0 0 108 108">
+    <rect width="108" height="108" fill="${G}"/>
+    <g transform="translate(-4 22) scale(.6)">
+      ${[SCELTA, SCELTA_GUIZZO].map(d =>
+        `<path d="${d}" fill="none" stroke="${A}" stroke-width="${s}"
+           stroke-linecap="round" stroke-linejoin="round"/>`).join("")}
+    </g>
+    <text x="48" y="50" fill="${W}" font-family="system-ui,sans-serif" font-size="26" font-weight="600">o</text>
+    <text x="48" y="84" fill="${W}" font-family="system-ui,sans-serif" font-size="26" font-weight="600">ound</text>
+  </svg>`;
+}
+
+const S = { paths: [SCELTA, SCELTA_GUIZZO] };
+
+document.getElementById("scelta").innerHTML =
+  `<div class="cella">${tile({ size: 200, guida: true, ...S })}<p>con la zona sicura</p></div>` +
+  `<div class="cella">${tile({ size: 200, ...S })}<p>192 px</p></div>` +
+  `<div class="cella">${tile({ size: 128, tonda: true, ...S })}<p>ritaglio tondo</p></div>` +
+  `<div class="cella">${tile({ size: 96, ...S })}<p>96</p></div>` +
+  `<div class="cella">${tile({ size: 64, ...S })}<p>64</p></div>` +
+  `<div class="cella">${tile({ size: 48, ...S })}<p>48</p></div>` +
+  `<div class="cella">${tile({ size: 96, colore: G, fondo: A, ...S })}<p>negativo</p></div>`;
+
+document.getElementById("scartate").innerHTML =
+  `<div class="cella">${tile({ size: 132, paths: [DOLLARO_ASTA, DOLLARO_PANCE, DOLLARO_SPIR], stroke: 8 })}<p>asta passante</p></div>` +
+  `<div class="cella">${tile({ size: 48, paths: [DOLLARO_ASTA, DOLLARO_PANCE, DOLLARO_SPIR], stroke: 8 })}<p>a 48</p></div>` +
+  `<div class="cella">${tile({ size: 132, paths: [DUE], stroke: 9 })}<p>tratto unico</p></div>` +
+  `<div class="cella">${tile({ size: 48, paths: [DUE], stroke: 9 })}<p>a 48</p></div>` +
+  `<div class="cella">${tile({ size: 132, paths: [STRETTA, "M 66 34 C 68 27, 66 21, 59 20"], stroke: 8.5 })}<p>riccio stretto</p></div>` +
+  `<div class="cella">${tile({ size: 48, paths: [STRETTA, "M 66 34 C 68 27, 66 21, 59 20"], stroke: 8.5 })}<p>a 48</p></div>`;
+
+document.getElementById("parola").innerHTML =
+  `<div class="cella">${parola(192)}<p>192 px</p></div>` +
+  `<div class="cella">${parola(96)}<p>96</p></div>` +
+  `<div class="cella">${parola(64)}<p>64</p></div>` +
+  `<div class="cella">${parola(48)}<p>48 — illeggibile</p></div>`;
+</script>

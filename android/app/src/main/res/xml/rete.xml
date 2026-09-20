@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Regole di rete dell'app.
+
+    ## Perche' il traffico in chiaro e' permesso
+
+    Da Android 9 e' vietato per impostazione predefinita, ed e' giusto
+    cosi'. Ma UPnP/DLNA e' un protocollo HTTP e basta: una TV Samsung
+    espone la sua scheda su http://192.168.1.40:7676 e non ha nessun
+    certificato, perche' non ha un nome di dominio a cui intestarlo.
+    Senza questa riga la scoperta dei dispositivi fallisce prima di
+    mandare un pacchetto.
+
+    ## Perche' non e' ristretto qui
+
+    Android sa dire «questo dominio si' e quest'altro no», ma non sa dire
+    «qualunque indirizzo della rete locale»: i domain-config accettano
+    nomi, non intervalli di indirizzi. L'unica formulazione possibile e'
+    quindi permissiva, e la restrizione vera sta nel codice — Dlna.eLocale()
+    rifiuta qualunque indirizzo che non sia privato, e viene controllato
+    prima di ogni richiesta.
+
+    ## Cosa invece si stringe
+
+    Le sole autorita' di certificazione riconosciute sono quelle di
+    sistema. Un certificato installato dall'utente — o da chi ha avuto il
+    telefono in mano cinque minuti — non vale: senza questa riga chi
+    controlla la rete potrebbe mettersi in mezzo al traffico verso
+    YouTube e leggerlo in chiaro.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  La S di SoSound — quella condivisa fra «So» e «Sound» — disegnata per
+  leggersi anche come una chiave di sol: il riccio in basso e il guizzo in
+  alto sono i due segni che la richiamano.
+
+  Il disegno sta fra y=19 e y=85, cioè dentro il cerchio di raggio 33
+  centrato in (54,54): è la zona che ogni lanciatore garantisce visibile.
+  Sbordando, il ritaglio tondo si mangerebbe proprio il riccio, che è
+  quello che distingue questo segno da una S qualsiasi.
+
+  È un TRATTO e non una sagoma: lo spessore si regola con un numero
+  invece di ridisegnare tutti i contorni.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Il corpo della S, che si chiude nel riccio in basso a sinistra. -->
+    <path
+        android:pathData="M 67,34 C 67,24 54,20 47,29 C 40,38 46,50 56,57 C 67,64 67,76 55,81 C 44,85 33,78 35,67 C 37,57 50,56 53,66 C 55,74 46,79 41,73"
+        android:strokeColor="#A594FF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Il guizzo in alto: continua il tratto oltre la curva, come fa
+         l'asta di una chiave. -->
+    <path
+        android:pathData="M 67,34 C 69,26 67,20 60,19"
+        android:strokeColor="#A594FF"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>
