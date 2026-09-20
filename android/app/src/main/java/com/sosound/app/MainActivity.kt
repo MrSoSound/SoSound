@@ -189,8 +189,19 @@ private fun Root(vm: MainViewModel = viewModel()) {
     // Le pagine del «Cerca» e i suoi chip sono la stessa scelta: il
     // nastro la scrive, i chip la leggono, e chi tocca un chip fa
     // scorrere il nastro. Senza questo si vedrebbero i due in disaccordo.
-    LaunchedEffect(paginaCorrente) {
-        when (paginaCorrente) {
+    //
+    // «settledPage» e non «currentPage»: durante uno scorrimento
+    // programmato verso una pagina non adiacente, currentPage cambia
+    // anche per le pagine attraversate di passaggio. Se questo effetto
+    // reagisse a quelle, riscriverebbe il tipo di ricerca a meta' volo,
+    // il che cancellerebbe l'animazione in corso (la key dell'altro
+    // effetto, piu' sotto, sarebbe cambiata) — ed e' cosi' che il nastro
+    // restava incastrato a meta' fra due schede invece di arrivare a
+    // destinazione. settledPage cambia solo quando lo scorrimento si e'
+    // fermato, quindi non interrompe se stesso.
+    val paginaAssestata = pagine[nastro.settledPage]
+    LaunchedEffect(paginaAssestata) {
+        when (paginaAssestata) {
             Pagina.CERCA_BRANI -> vm.onKindChange(SearchKind.BRANI)
             Pagina.CERCA_ALBUM -> vm.onKindChange(SearchKind.ALBUM)
             Pagina.CERCA_ARTISTI -> vm.onKindChange(SearchKind.ARTISTI)

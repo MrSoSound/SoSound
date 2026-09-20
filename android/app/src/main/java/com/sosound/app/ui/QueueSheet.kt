@@ -61,7 +61,11 @@ fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
     val stato by vm.playerState.collectAsState()
     val accent by vm.accent.collectAsState()
 
-    val listState = rememberLazyListState()
+    // Si apre gia' sul brano in ascolto, non sull'inizio della coda: e'
+    // quello che si e' venuti a vedere, non quello che e' gia' passato.
+    val listState = rememberLazyListState(
+        initialFirstVisibleItemIndex = stato.index.coerceIn(0, (coda.size - 1).coerceAtLeast(0)),
+    )
     val drag = rememberDragReorder(listState) { from, to -> vm.moveInQueue(from, to) }
 
     ModalBottomSheet(
@@ -111,6 +115,11 @@ fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
             ) {
                 itemsIndexed(coda, key = { _, t -> t.videoId }) { index, track ->
                     val inMano = drag.draggingIndex == index
+                    // La coda gia' ascoltata sta sopra il brano in corso
+                    // nella lista (e' l'ordine di riproduzione): un po'
+                    // di trasparenza dice a colpo d'occhio "questa e'
+                    // gia' passata", senza doverla nascondere del tutto.
+                    val giaAscoltato = index < stato.index
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -119,6 +128,7 @@ fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
                             // sotto quelli vicini.
                             .zIndex(if (inMano) 1f else 0f)
                             .graphicsLayer { translationY = if (inMano) drag.offset else 0f }
+                            .alpha(if (giaAscoltato) 0.45f else 1f)
                             .padding(horizontal = 12.dp, vertical = 3.dp)
                             .then(if (inMano) Modifier.glass(strong = true) else Modifier)
                             .clickable { vm.jumpTo(index) }
