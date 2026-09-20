@@ -1,0 +1,52 @@
+name: Release
+
+# Un tag v* è una pubblicazione vera, diversa da un push qualunque su
+# main: qui la build viene firmata con la chiave di produzione e finisce
+# in una GitHub Release, che è quello che l'app confronta per proporre
+# l'aggiornamento agli utenti.
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode signing key
+        run: |
+          echo "${{ secrets.SIGNING_KEY_BASE64 }}" | base64 -d > "$GITHUB_WORKSPACE/android/release.jks"
+          cat > keystore.properties <<EOF
+          storeFile=$GITHUB_WORKSPACE/android/release.jks
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          EOF
+
+      - name: Build signed release
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f release.jks keystore.properties
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: android/app/build/outputs/apk/release/*.apk
