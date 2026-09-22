@@ -2,6 +2,7 @@ package com.sosound.app
 
 import com.sosound.app.data.importing.SpotifyLink
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -16,6 +17,8 @@ import org.junit.Test
  * questa strada si e' chiusa e bisogna ripiegare sul file esportato.
  */
 class SpotifyLinkTest {
+
+    @Before fun soloSeLaReteEStataChiesta() = Rete.richiesta()
 
     private val link = SpotifyLink()
 

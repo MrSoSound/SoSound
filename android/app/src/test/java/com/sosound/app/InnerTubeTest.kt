@@ -2,6 +2,7 @@ package com.sosound.app
 
 import com.sosound.app.data.catalog.InnerTubeClient
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -19,6 +20,8 @@ import org.junit.Test
  * dire che YouTube ha cambiato la struttura e il parser va aggiornato.
  */
 class InnerTubeTest {
+
+    @Before fun soloSeLaReteEStataChiesta() = Rete.richiesta()
 
     private val client = InnerTubeClient()
 

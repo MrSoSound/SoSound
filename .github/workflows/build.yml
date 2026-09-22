@@ -28,6 +28,11 @@ jobs:
       - name: Build (debug + release non firmata)
         run: ./gradlew assembleDebug assembleRelease --no-daemon
 
+      # Senza -Prete: le classi che chiamano YouTube Music e Spotify
+      # davvero vengono saltate (vedi Rete.kt nei test). Dipendono da un
+      # servizio che non controlliamo e da un catalogo che cambia da un
+      # paese all'altro, quindi qui direbbero rosso per motivi che non
+      # riguardano il codice.
       - name: Test
         run: ./gradlew test --no-daemon
 

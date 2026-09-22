@@ -86,6 +86,15 @@ android {
         buildConfig = true
     }
 
+    testOptions {
+        unitTests.all {
+            // I test che escono in rete si saltano, a meno che non si
+            // chiedano: vedi Rete.kt nei test. La build di verifica non
+            // puo' dipendere da un'API che non controlliamo.
+            it.systemProperty("sosound.rete", if (project.hasProperty("rete")) "si" else "no")
+        }
+    }
+
     // Room scrive qui lo schema atteso a ogni versione: serve a
     // confrontarci le migrazioni scritte a mano, ed e' l'unico modo di
     // accorgersi di una differenza prima che lo faccia il telefono

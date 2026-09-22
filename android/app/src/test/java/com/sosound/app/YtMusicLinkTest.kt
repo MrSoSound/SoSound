@@ -2,6 +2,7 @@ package com.sosound.app
 
 import com.sosound.app.data.importing.YtMusicLink
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -14,6 +15,8 @@ import org.junit.Test
  * qui, non sul telefono di chi prova a importare.
  */
 class YtMusicLinkTest {
+
+    @Before fun soloSeLaReteEStataChiesta() = Rete.richiesta()
 
     private val link = YtMusicLink()
 

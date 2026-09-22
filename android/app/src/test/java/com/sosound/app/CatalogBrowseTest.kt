@@ -3,6 +3,7 @@ package com.sosound.app
 import com.sosound.app.data.catalog.InnerTubeClient
 import com.sosound.app.data.catalog.SearchKind
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -17,6 +18,8 @@ import org.junit.Test
  * continuerebbe a passare mentre l'app non trova piu' niente.
  */
 class CatalogBrowseTest {
+
+    @Before fun soloSeLaReteEStataChiesta() = Rete.richiesta()
 
     private val client = InnerTubeClient()
 

@@ -6,6 +6,7 @@ import com.sosound.app.data.importing.ImportRow
 import com.sosound.app.data.importing.PlaylistFile
 import com.sosound.app.data.importing.TrackMatcher
 import kotlinx.coroutines.runBlocking
+import org.junit.Before
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -122,6 +123,8 @@ class PlaylistFileTest {
  * si guarda quanti vengono ritrovati.
  */
 class MatchQualityTest {
+
+    @Before fun soloSeLaReteEStataChiesta() = Rete.richiesta()
 
     private val client = InnerTubeClient()
 
