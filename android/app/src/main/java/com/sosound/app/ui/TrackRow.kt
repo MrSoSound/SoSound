@@ -1,7 +1,8 @@
 package com.sosound.app.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -39,7 +40,12 @@ import java.io.File
  * brano, i tre puntini aprono la scheda. Prima il tocco sulla riga
  * riproduceva e il cestino cancellava — due azioni a un dito di
  * distanza, una delle quali irreversibile.
+ *
+ * Tenere premuto apre la stessa scheda dei tre puntini: e' il gesto che
+ * chi usa un lettore musicale prova per primo, prima ancora di cercare
+ * un pulsante piccolo in fondo alla riga.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun TrackRow(
     title: String,
@@ -56,6 +62,14 @@ fun TrackRow(
      * differenza nel momento peggiore.
      */
     senzaFile: Boolean = false,
+    /** Vero se questo brano e' segnato esplicito: mostra il bollino "E". */
+    explicit: Boolean = false,
+    /**
+     * Non null quando questo brano sta scaricando adesso: disegna
+     * l'anello sopra la copertina invece di lasciarlo dire solo altrove,
+     * in un elenco separato che si guarda a parte.
+     */
+    download: CoverDownload? = null,
     trailing: @Composable (() -> Unit)? = null,
     onClick: () -> Unit,
     onDetails: (() -> Unit)? = null,
@@ -65,7 +79,7 @@ fun TrackRow(
             .fillMaxWidth()
             .padding(horizontal = 10.dp, vertical = 3.dp)
             .glass()
-            .clickable(onClick = onClick)
+            .combinedClickable(onClick = onClick, onLongClick = onDetails)
             .padding(start = 10.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -85,6 +99,7 @@ fun TrackRow(
             } else {
                 Icon(Icons.Default.MusicNote, null, tint = Vetro.InkFaint)
             }
+            if (download != null) CoverDownloadOverlay(download, accent = accent)
         }
 
         Column(Modifier.weight(1f)) {
@@ -104,7 +119,11 @@ fun TrackRow(
                     color = if (playing) accent else Vetro.Ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    // fill = false: si restringe per lasciare posto al
+                    // bollino, invece di coprirlo su un titolo lungo.
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                if (explicit) ExplicitBadge()
             }
             Row(
                 verticalAlignment = Alignment.CenterVertically,

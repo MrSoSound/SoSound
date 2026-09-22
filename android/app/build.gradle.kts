@@ -18,8 +18,8 @@ android {
         // abbastanza diverso da richiedere un secondo percorso di codice.
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.1.1"
+        versionCode = 8
+        versionName = "1.2.4"
     }
 
     // La chiave di firma sta fuori dal progetto e fuori da git: chi ce
@@ -83,6 +83,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     // Room scrive qui lo schema atteso a ogni versione: serve a
@@ -112,6 +113,17 @@ android {
             isEnable = true
             reset()
             include("arm64-v8a", "armeabi-v7a")
+            // x86_64 solo su richiesta (-Pemulatore), per chi prova l'app
+            // su un emulatore. Nessun telefono lo usa, e in un APK
+            // pubblicato sarebbero 15 MB che non servono a nessuno.
+            //
+            // Serve perche' l'emulatore e' x86_64 e fa girare il codice
+            // arm64 per traduzione: l'app parte lo stesso, ma il runtime
+            // Python di yt-dlp e' un PROCESSO A SE', e quello sotto
+            // traduzione non si collega —
+            //   "libz.so is for EM_AARCH64 instead of EM_X86_64".
+            // Il sintomo e' che la ricerca funziona e lo scaricamento no.
+            if (project.hasProperty("emulatore")) include("x86_64")
             // Anche quello universale, per chi non sa che telefono ha.
             isUniversalApk = true
         }

@@ -17,6 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.DownloadForOffline
@@ -64,7 +65,7 @@ import java.io.File
  * Esiste per una ragione precisa: nelle liste titolo e artista vengono
  * troncati, e senza questa scheda non c'era nessun modo di leggerli per
  * intero. Oltre al testo completo mostra quello che una lista non ha
- * spazio per dire — album, formato, peso — e raccoglie le azioni.
+ * spazio per dire — album, peso — e raccoglie le azioni.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @UnstableApi
@@ -150,12 +151,19 @@ fun TrackSheet(vm: MainViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // Nessun maxLines: e' tutto il senso di questa scheda.
-                Text(
-                    d.title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Vetro.Ink,
-                    textAlign = TextAlign.Center,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        d.title,
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = Vetro.Ink,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (d.explicit) ExplicitBadge()
+                }
                 Text(
                     d.artist,
                     style = MaterialTheme.typography.bodyLarge,
@@ -170,10 +178,16 @@ fun TrackSheet(vm: MainViewModel) {
                     when {
                         d.owned == null -> "Non è ancora nella tua libreria"
                         !d.owned.haFile -> "Si ascolta dalla rete · ${d.durationText}"
+                        // Ha un file ma non l'hai salvato: e' li' solo
+                        // perche' l'hai ascoltato o messo in coda, e
+                        // sparira' da solo quando serve spazio. Dire
+                        // "Tuo" qui contraddirebbe il tasto "Togli dal
+                        // telefono" che non a caso non c'e'.
+                        !d.owned.salvato -> "Nella cache, non salvato · ${d.durationText}"
                         else -> "Tuo, anche senza rete · ${d.durationText}"
                     },
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (d.owned?.haFile == true) tinta else Vetro.InkFaint,
+                    color = if (d.owned?.haFile == true && d.owned.salvato) tinta else Vetro.InkFaint,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(top = 8.dp),
                 )
@@ -213,7 +227,10 @@ fun TrackSheet(vm: MainViewModel) {
 
                 Detail("Durata", d.durationText)
                 d.owned?.let {
-                    Detail("Formato", "${it.formatText} · ${it.sizeText}")
+                    // Il formato (M4A, OPUS...) non interessa a chi
+                    // ascolta e basta: quanto pesa sì, perche' dice
+                    // qualcosa sullo spazio occupato sul telefono.
+                    Detail("Peso", it.sizeText)
                 } ?: Detail("Sul telefono", "no, non ancora scaricato")
 
                 c?.description?.let { testo ->
@@ -230,25 +247,47 @@ fun TrackSheet(vm: MainViewModel) {
 
             // -------------------------------------------------- le azioni
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Action(
-                    icon = Icons.Default.PlayArrow,
-                    label = if (d.owned != null) "Riproduci" else "Scarica e riproduci",
-                    tint = accent.color,
-                ) {
+                Action(Icons.Default.PlayArrow, "Riproduci", accent.color) {
+                    // Per un brano non tuo, "Riproduci" ascolta e basta:
+                    // resta un riferimento in cache, non entra in
+                    // libreria. Salvarlo per davvero è un gesto a parte
+                    // ("Scarica e basta" qui sotto, o il tasto nel
+                    // player) — due intenzioni diverse non devono
+                    // nascondersi dietro lo stesso tasto.
                     d.owned?.let { vm.play(listOf(it), 0) }
                         ?: d.catalog?.let { vm.playFromSearch(it) }
                     vm.closeDetails()
                 }
 
-                if (d.owned != null) {
+                if (d.owned == null) {
+                    d.catalog?.let { c ->
+                        Action(Icons.Default.Download, "Scarica e basta", Vetro.InkSoft) {
+                            vm.add(c)
+                            vm.closeDetails()
+                        }
+                    }
+                }
+
+                // «Riproduci dopo» e «Aggiungi alla coda» non richiedono
+                // piu' di averlo gia' sul telefono: un brano trovato
+                // cercando entra come riferimento ed e' pronto quando
+                // arriva il suo turno — vedi MainViewModel.addToQueue.
+                if (d.owned != null || d.catalog != null) {
                     Action(Icons.AutoMirrored.Filled.PlaylistPlay, "Riproduci dopo", Vetro.InkSoft) {
-                        vm.playNext(d.owned)
+                        d.owned?.let { vm.playNext(it) } ?: d.catalog?.let { vm.playNext(it) }
                         vm.closeDetails()
                     }
                     Action(Icons.AutoMirrored.Filled.QueueMusic, "Aggiungi alla coda", Vetro.InkSoft) {
-                        vm.addToQueue(d.owned)
+                        d.owned?.let { vm.addToQueue(it) } ?: d.catalog?.let { vm.addToQueue(it) }
                         vm.closeDetails()
                     }
+                }
+                // Solo se e' davvero nostro E ha un file da togliere: un
+                // brano che sta solo di passaggio nella cache sparisce da
+                // solo quando serve spazio, e "Togli dal telefono" su
+                // qualcosa che non hai scelto di tenere non ha senso —
+                // sembrerebbe un'azione tua su qualcosa che tuo non e'.
+                if (d.owned?.salvato == true && d.owned.haFile) {
                     Action(Icons.Default.Delete, "Togli dal telefono", Vetro.Danger) {
                         confirmDelete = true
                     }

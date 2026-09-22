@@ -112,8 +112,16 @@ object TrackMatcher {
 
         // Senza artista nella riga importata (testo incollato senza
         // separatore) si giudica sul solo titolo, ma con un tetto piu'
-        // basso: la certezza non c'e'.
-        if (row.artist.isBlank()) return titolo * 0.75
+        // basso: la certezza non c'e'. La durata, quando c'e', resta
+        // comunque un aiuto — anzi qui vale piu' che altrove, perche' non
+        // c'e' nient'altro con cui distinguere due omonimi.
+        if (row.artist.isBlank()) {
+            return (
+                titolo * 0.75 +
+                    durationAdjustment(row, candidate) +
+                    explicitAdjustment(row, candidate)
+                ).coerceIn(0.0, 1.0)
+        }
 
         val artistaAtteso = tokens(row.artist)
         val artistaTrovato = tokens(candidate.artist)
@@ -133,7 +141,56 @@ object TrackMatcher {
         // che riempire la playlist di remix al posto degli originali.
         if (altraVersione(candidate, row)) punteggio -= 0.35
 
+        punteggio += durationAdjustment(row, candidate)
+        punteggio += explicitAdjustment(row, candidate)
+
         return punteggio.coerceIn(0.0, 1.0)
+    }
+
+    /**
+     * Quanto la durata avvicina o allontana un candidato, quando la
+     * conosciamo da entrambe le parti.
+     *
+     * E' l'unico parametro, oltre a titolo e artista, che riusciamo a
+     * tirare fuori da un'importazione Spotify (link o CSV esportato): non
+     * un identificativo — un ISRC risolverebbe la questione da solo, ma
+     * Spotify lo espone solo dietro API con app registrata, e YouTube
+     * Music non lo restituisce nei risultati di ricerca, quindi non ci
+     * sarebbe comunque nulla da confrontarlo. La durata invece la danno
+     * entrambi i cataloghi gratis, ed e' quasi quanto un'impronta: due
+     * incisioni diverse della stessa canzone — radio edit, versione da
+     * album, live — quasi sempre durano un tempo diverso anche quando si
+     * chiamano allo stesso identico modo.
+     */
+    fun durationAdjustment(row: ImportRow, candidate: CatalogTrack): Double {
+        val attesa = row.durationSeconds ?: return 0.0
+        val trovata = candidate.durationSeconds ?: return 0.0
+        val scarto = kotlin.math.abs(attesa - trovata)
+        return when {
+            scarto <= 2 -> 0.10
+            scarto <= 5 -> 0.04
+            // Fino a una decina di secondi capita anche fra due rip dello
+            // stesso brano: non e' un segnale, ne' a favore ne' contro.
+            scarto <= 10 -> 0.0
+            scarto <= 25 -> -0.15
+            else -> -0.30
+        }
+    }
+
+    /**
+     * Piccolo aggiustamento quando lo stato "esplicito" lo sappiamo da
+     * entrambe le parti.
+     *
+     * Piu' leggero della durata di proposito: qui capita spesso di non
+     * saperlo affatto (un CSV vecchio, un elenco incollato), e quando lo
+     * sappiamo e' un indizio in piu' per scegliere fra due candidati
+     * altrimenti identici — mai abbastanza forte da ribaltare da solo un
+     * abbinamento chiaramente sbagliato.
+     */
+    fun explicitAdjustment(row: ImportRow, candidate: CatalogTrack): Double {
+        val atteso = row.explicit ?: return 0.0
+        val trovato = candidate.explicit ?: return 0.0
+        return if (atteso == trovato) 0.05 else -0.025
     }
 
     fun match(row: ImportRow, candidates: List<CatalogTrack>): MatchResult {

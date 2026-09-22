@@ -194,55 +194,23 @@ class Downloader(
      * connessione, yt-dlp produce errori che somigliano a un motore
      * disallineato, e si finirebbe per scaricare aggiornamenti che non
      * possono arrivare.
+     *
+     * Il resto — i pattern sul testo — non dipende dal telefono, ed e'
+     * per questo che vive fuori, in [classificaMessaggioYtDlp]: e' la
+     * parte che si puo' verificare con un test normale, senza un Context.
      */
     private fun classify(raw: String?, cause: Throwable?): DownloadError {
-        val m = raw.orEmpty()
-
         if (!context.hasNetwork()) {
             return DownloadError(
                 "Nessuna connessione. Il download riprende quando torna la rete.",
                 FailureKind.RETE_ASSENTE, cause,
             )
         }
-
-        return when {
-            m.contains("Sign in to confirm", true) || m.contains("not a bot", true) ->
-                DownloadError(
-                    "YouTube chiede una conferma anti-bot. Riprova più tardi, o da un'altra rete.",
-                    FailureKind.ANTIBOT, cause,
-                )
-
-            // Il 403 arriva dopo che il brano e' stato trovato: non e'
-            // «non esiste», e' «questo indirizzo e' stato rifiutato».
-            m.contains("403") || m.contains("Forbidden", true) ->
-                DownloadError(
-                    "YouTube ha rifiutato lo scaricamento di questo brano. " +
-                        "Riprova: a volte basta, se no aggiorna yt-dlp.",
-                    FailureKind.MOTORE_DISALLINEATO, cause,
-                )
-
-            m.contains("Video unavailable", true) ->
-                DownloadError("Questo brano non è disponibile", FailureKind.CONTENUTO, cause)
-
-            m.contains("Private video", true) ->
-                DownloadError("Brano privato", FailureKind.CONTENUTO, cause)
-
-            m.contains("age", true) && m.contains("restrict", true) ->
-                DownloadError(
-                    "Brano con restrizione di età: serve un accesso",
-                    FailureKind.CONTENUTO, cause,
-                )
-
-            // Tutto il resto — errori HTTP, estrazione fallita, firma non
-            // risolta, formato non trovato — e' il quadro tipico di uno
-            // yt-dlp rimasto indietro. E' anche il caso al primo avvio:
-            // la versione impacchettata risale al rilascio della libreria.
-            else -> DownloadError(
-                m.lines().lastOrNull { it.isNotBlank() }?.take(160)
-                    ?: "Download non riuscito",
-                FailureKind.MOTORE_DISALLINEATO, cause,
-            )
-        }
+        // Il testo vero resta nel log e non sullo schermo: e' li' che si
+        // riconosce un caso nuovo, per aggiungerlo a
+        // classificaMessaggioYtDlp() la prossima volta.
+        Log.w(TAG, "download fallito: ${raw.orEmpty().take(300)}")
+        return classificaMessaggioYtDlp(raw, cause)
     }
 
     private companion object {
@@ -257,5 +225,79 @@ class Downloader(
         val CLIENTS = listOf(null, "tv", "ios", "web_safari")
 
         const val TAG = "Downloader"
+    }
+}
+
+/**
+ * Riconosce il testo che yt-dlp scrive quando un download fallisce, e lo
+ * trasforma in un [DownloadError] con un messaggio in italiano.
+ *
+ * Vive fuori da [Downloader] apposta: non tocca la rete ne' il telefono,
+ * e si puo' chiamare da un test normale della JVM.
+ *
+ * ⚠️ Il ramo finale non deve mai restituire il testo grezzo di yt-dlp:
+ * e' gergo per chi sviluppa, non per chi ascolta. «Requested format is
+ * not available» e' arrivato cosi' fino a una persona vera, in un
+ * elenco pensato per dirle cosa fare — non cosa e' andato storto dentro
+ * yt-dlp. Un caso nuovo, non ancora riconosciuto, resta nel log: si
+ * aggiunge qui appena si vede, ma nel frattempo non spaventa nessuno.
+ */
+internal fun classificaMessaggioYtDlp(raw: String?, cause: Throwable? = null): DownloadError {
+    val m = raw.orEmpty()
+
+    return when {
+        m.contains("Sign in to confirm", true) || m.contains("not a bot", true) ->
+            DownloadError(
+                "YouTube chiede una conferma anti-bot. Riprova più tardi, o da un'altra rete.",
+                FailureKind.ANTIBOT, cause,
+            )
+
+        // Il 403 arriva dopo che il brano e' stato trovato: non e'
+        // «non esiste», e' «questo indirizzo e' stato rifiutato».
+        m.contains("403") || m.contains("Forbidden", true) ->
+            DownloadError(
+                "YouTube ha rifiutato lo scaricamento di questo brano. " +
+                    "Riprova: a volte basta, se no aggiorna yt-dlp.",
+                FailureKind.MOTORE_DISALLINEATO, cause,
+            )
+
+        m.contains("Video unavailable", true) ->
+            DownloadError("Questo brano non è disponibile", FailureKind.CONTENUTO, cause)
+
+        m.contains("Private video", true) ->
+            DownloadError("Brano privato", FailureKind.CONTENUTO, cause)
+
+        m.contains("age", true) && m.contains("restrict", true) ->
+            DownloadError(
+                "Brano con restrizione di età: serve un accesso",
+                FailureKind.CONTENUTO, cause,
+            )
+
+        // La lista dei formati che YouTube espone dipende dal client che
+        // la chiede: uno di serie puo' non avere un audio scaricabile
+        // dove «tv» o «ios» ce l'hanno. Resta MOTORE_DISALLINEATO e non
+        // CONTENUTO apposta — cosi' il giro sui client alternativi (vedi
+        // Downloader.CLIENTS) continua invece di fermarsi al primo.
+        m.contains("Requested format is not available", true) ->
+            DownloadError(
+                "YouTube non offre un formato audio scaricabile per questo " +
+                    "brano con il client provato. Riprovo con un altro; se " +
+                    "persiste, aggiorna yt-dlp.",
+                FailureKind.MOTORE_DISALLINEATO, cause,
+            )
+
+        // Tutto il resto — errori HTTP non ancora visti, estrazione
+        // fallita, firma non risolta — e' il quadro tipico di uno yt-dlp
+        // rimasto indietro rispetto a YouTube. E' anche il caso al primo
+        // avvio: la versione impacchettata risale al rilascio della
+        // libreria. Il testo di yt-dlp non arriva mai qui sullo schermo
+        // (chi chiama, [Downloader.classify], lo scrive nel log prima di
+        // arrivare a questo ramo): e' un indizio per chi sviluppa, non
+        // un messaggio per chi ascolta.
+        else -> DownloadError(
+            "Download non riuscito per un motivo che non riconosco. " +
+                "Riprova, o aggiorna yt-dlp dalle impostazioni.",
+            FailureKind.MOTORE_DISALLINEATO, cause,
+        )
     }
 }

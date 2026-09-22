@@ -25,21 +25,28 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,6 +62,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
+import com.sosound.app.data.library.PlaylistSummary
 import com.sosound.app.ui.theme.Vetro
 import com.sosound.app.ui.theme.glass
 import java.io.File
@@ -136,6 +144,8 @@ private fun Brani(vm: MainViewModel) {
     val filter by vm.libraryFilter.collectAsState()
     val stato by vm.playerState.collectAsState()
     val accent by vm.accent.collectAsState()
+    val downloads by vm.downloads.collectAsState()
+    val downloadByVideoId = downloads.associateBy { it.track.videoId }
 
     Column(Modifier.fillMaxSize()) {
         GlassField(
@@ -181,6 +191,7 @@ private fun Brani(vm: MainViewModel) {
                         coverPath = track.coverPath,
                         playing = stato.current?.videoId == track.videoId,
                         accent = accent.color,
+                        download = CoverDownload.da(downloadByVideoId[track.videoId]),
                         onClick = { vm.play(tracks, index) },
                         onDetails = { vm.showDetails(track) },
                     )
@@ -206,6 +217,8 @@ private fun Album(vm: MainViewModel) {
     val aperto by vm.openLocalAlbum.collectAsState()
     val stato by vm.playerState.collectAsState()
     val accent by vm.accent.collectAsState()
+    val downloads by vm.downloads.collectAsState()
+    val downloadByVideoId = downloads.associateBy { it.track.videoId }
 
     BackHandler(enabled = aperto != null) { vm.openLocalAlbum(null) }
 
@@ -249,6 +262,7 @@ private fun Album(vm: MainViewModel) {
                         coverPath = t.coverPath,
                         playing = stato.current?.videoId == t.videoId,
                         accent = accent.color,
+                        download = CoverDownload.da(downloadByVideoId[t.videoId]),
                         onClick = { vm.play(scelto.tracks, i) },
                         onDetails = { vm.showDetails(t) },
                     )
@@ -318,6 +332,7 @@ private fun Album(vm: MainViewModel) {
 private fun Playlist(vm: MainViewModel) {
     val playlists by vm.playlists.collectAsState()
     var creando by remember { mutableStateOf(false) }
+    var mescolando by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         Row(
@@ -359,6 +374,41 @@ private fun Playlist(vm: MainViewModel) {
                     style = MaterialTheme.typography.bodySmall,
                     color = Vetro.InkFaint,
                 )
+            }
+        }
+
+        // Ha senso solo con almeno due playlist da poter unire: con zero
+        // o una sola sarebbe un tasto morto, e coerentemente con il resto
+        // della schermata (che con la libreria vuota semplicemente non
+        // mostra «Ascolta tutto a caso») qui si sceglie di non mostrarla
+        // affatto invece di tenerla lì disabilitata.
+        if (playlists.size >= 2) {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 3.dp)
+                    .glass()
+                    .clickable { mescolando = true }
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Icon(
+                    Icons.Default.Shuffle, null,
+                    tint = Vetro.InkSoft, modifier = Modifier.size(20.dp),
+                )
+                Column {
+                    Text(
+                        "Mescola più playlist",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Vetro.Ink,
+                    )
+                    Text(
+                        "scegline due o più: i brani si uniscono in una coda sola, mischiata",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Vetro.InkFaint,
+                    )
+                }
             }
         }
 
@@ -427,6 +477,121 @@ private fun Playlist(vm: MainViewModel) {
             onDismiss = { creando = false },
         )
     }
+
+    if (mescolando) {
+        MixPlaylistsSheet(
+            playlists = playlists,
+            onConfirm = { scelte -> vm.mixAndPlay(scelte); mescolando = false },
+            onDismiss = { mescolando = false },
+        )
+    }
+}
+
+/**
+ * Il foglio per scegliere quali playlist mischiare insieme.
+ *
+ * Un `ModalBottomSheet` invece di un `AlertDialog`: la lista di playlist
+ * puo' essere lunga, e un foglio scorre dove un dialogo si schiaccerebbe.
+ * Ogni riga si tocca per selezionarla — un cerchio pieno o vuoto, come le
+ * proposte di abbinamento nell'import — e il tasto in fondo resta spento
+ * finche' le scelte non sono almeno due: mischiarne una sola non vuol
+ * dire niente.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MixPlaylistsSheet(
+    playlists: List<PlaylistSummary>,
+    onConfirm: (List<Long>) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val selezionate = remember { mutableStateListOf<Long>() }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = Vetro.Ground,
+        contentColor = Vetro.Ink,
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+            Text(
+                "Mescola più playlist",
+                style = MaterialTheme.typography.titleSmall,
+                color = Vetro.Ink,
+            )
+            Text(
+                "scegline due o più: si uniscono e si mischiano in una coda sola",
+                style = MaterialTheme.typography.bodySmall,
+                color = Vetro.InkFaint,
+                modifier = Modifier.padding(top = 2.dp, bottom = 8.dp),
+            )
+        }
+
+        LazyColumn(Modifier.weight(1f, fill = false)) {
+            items(playlists, key = { it.id }) { p ->
+                val scelta = p.id in selezionate
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (scelta) selezionate.remove(p.id) else selezionate.add(p.id)
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Box(
+                        Modifier.size(48.dp).clip(RoundedCornerShape(9.dp)).background(Vetro.Glass),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (p.coverPath != null) {
+                            AsyncImage(
+                                model = File(p.coverPath),
+                                contentDescription = null,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(48.dp),
+                            )
+                        } else {
+                            Icon(
+                                Icons.AutoMirrored.Filled.QueueMusic, null,
+                                tint = Vetro.InkFaint,
+                            )
+                        }
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            p.name,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Vetro.Ink,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            if (p.trackCount == 1) "1 brano" else "${p.trackCount} brani",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Vetro.InkFaint,
+                        )
+                    }
+                    Icon(
+                        if (scelta) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                        null,
+                        tint = if (scelta) Vetro.Accent else Vetro.InkFaint,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+        }
+
+        Button(
+            onClick = { onConfirm(selezionate.toList()) },
+            enabled = selezionate.size >= 2,
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+        ) {
+            Text(
+                if (selezionate.size < 2) "Scegli almeno due playlist"
+                else "Mescola ${selezionate.size} playlist",
+            )
+        }
+    }
 }
 
 @UnstableApi
@@ -437,6 +602,8 @@ private fun PlaylistDetail(vm: MainViewModel) {
     val tracks by vm.openPlaylistTracks.collectAsState()
     val stato by vm.playerState.collectAsState()
     val accent by vm.accent.collectAsState()
+    val downloads by vm.downloads.collectAsState()
+    val downloadByVideoId = downloads.associateBy { it.track.videoId }
 
     var rinominando by remember { mutableStateOf(false) }
     var eliminando by remember { mutableStateOf(false) }
@@ -505,6 +672,7 @@ private fun PlaylistDetail(vm: MainViewModel) {
                             coverPath = track.coverPath,
                             playing = stato.current?.videoId == track.videoId,
                             accent = accent.color,
+                            download = CoverDownload.da(downloadByVideoId[track.videoId]),
                             onClick = { vm.play(tracks, index) },
                             onDetails = { vm.showDetails(track) },
                             trailing = {

@@ -104,6 +104,7 @@ fun AlbumScreen(vm: MainViewModel, page: AlbumPage) {
                     coverUrl = t.thumbnail ?: page.thumbnail,
                     playing = stato.current?.videoId == t.videoId,
                     accent = accent.color,
+                    explicit = t.explicit == true,
                     onClick = { vm.playFromSearch(t.copy(thumbnail = t.thumbnail ?: page.thumbnail)) },
                     onDetails = { vm.showDetails(t) },
                     trailing = {
@@ -123,6 +124,90 @@ fun AlbumScreen(vm: MainViewModel, page: AlbumPage) {
         ScegliPlaylist(
             vm = vm,
             onScelta = { id -> vm.albumToPlaylist(page, id); sceltaPlaylist = false },
+            onDismiss = { sceltaPlaylist = false },
+        )
+    }
+}
+
+/**
+ * La scaletta di una playlist pubblica di YouTube Music, trovata
+ * cercando — stesso impianto di [AlbumScreen], perche' e' la stessa
+ * cosa vista da un altro tipo di pagina: una copertina, delle azioni
+ * sull'insieme, la scaletta sotto.
+ */
+@UnstableApi
+@Composable
+fun PlaylistScreen(vm: MainViewModel, page: com.sosound.app.data.catalog.PlaylistPage) {
+    val owned by vm.ownedIds.collectAsState()
+    val stato by vm.playerState.collectAsState()
+    val accent by vm.accent.collectAsState()
+    var sceltaPlaylist by remember { mutableStateOf(false) }
+
+    val mancanti = page.tracks.count { it.videoId !in owned }
+
+    Column(Modifier.fillMaxSize()) {
+        Intestazione(
+            titolo = page.title,
+            sottotitolo = "${page.tracks.size} brani",
+            terzaRiga = if (page.troncata) "continua oltre questi — importati solo i primi" else null,
+            immagine = page.thumbnail,
+            tonda = false,
+            onBack = { vm.browseBack() },
+        )
+
+        Row(
+            Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = { vm.downloadPublicPlaylist(page) },
+                enabled = mancanti > 0,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.Download, null, Modifier.size(17.dp))
+                Text(
+                    if (mancanti == 0) "  Ce l'hai tutto" else "  Scarica ($mancanti)",
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            OutlinedButton(
+                onClick = { sceltaPlaylist = true },
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, Modifier.size(17.dp))
+                Text("  In playlist", style = MaterialTheme.typography.labelMedium)
+            }
+        }
+
+        LazyColumn(Modifier.fillMaxSize()) {
+            itemsIndexed(page.tracks, key = { _, t -> t.videoId }) { i, t ->
+                TrackRow(
+                    title = "${i + 1}. ${t.title}",
+                    subtitle = t.subtitle,
+                    coverPath = null,
+                    coverUrl = t.thumbnail ?: page.thumbnail,
+                    playing = stato.current?.videoId == t.videoId,
+                    accent = accent.color,
+                    explicit = t.explicit == true,
+                    onClick = { vm.playFromSearch(t.copy(thumbnail = t.thumbnail ?: page.thumbnail)) },
+                    onDetails = { vm.showDetails(t) },
+                    trailing = {
+                        if (t.videoId in owned) {
+                            Icon(
+                                Icons.Default.Album, "Già sul telefono",
+                                tint = accent.color, modifier = Modifier.size(17.dp),
+                            )
+                        }
+                    },
+                )
+            }
+        }
+    }
+
+    if (sceltaPlaylist) {
+        ScegliPlaylist(
+            vm = vm,
+            onScelta = { id -> vm.publicPlaylistToPlaylist(page, id); sceltaPlaylist = false },
             onDismiss = { sceltaPlaylist = false },
         )
     }
@@ -157,6 +242,7 @@ fun ArtistScreen(vm: MainViewModel, page: ArtistPage) {
                         coverUrl = t.thumbnail,
                         playing = stato.current?.videoId == t.videoId,
                         accent = accent.color,
+                        explicit = t.explicit == true,
                         onClick = { vm.playFromSearch(t) },
                         onDetails = { vm.showDetails(t) },
                         trailing = {

@@ -3,6 +3,7 @@ package com.sosound.app
 import com.sosound.app.data.catalog.InnerTubeClient
 import com.sosound.app.data.catalog.SearchKind
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -92,6 +93,52 @@ class CatalogBrowseTest {
         assertTrue(
             "videoId malformato",
             esito.tracks.all { it.videoId.length == 11 },
+        )
+    }
+
+    @Test
+    fun `cerca playlist e ne apre una`() = runBlocking {
+        val esito = client.search("classic rock", SearchKind.PLAYLIST, limit = 8)
+        println("--- playlist trovate: ${esito.playlists.size} ---")
+        esito.playlists.take(4).forEach { println("   ${it.browseId} | ${it.title} — ${it.subtitle}") }
+        assertFalse("nessuna playlist", esito.playlists.isEmpty())
+
+        // Il browseId di una playlist comincia per VL: se prendessimo
+        // quello sbagliato sarebbe un UC..., cioe' il curatore.
+        val prima = esito.playlists.first()
+        assertTrue("browseId sospetto: ${prima.browseId}", prima.browseId.startsWith("VL"))
+        assertTrue("curatore mancante", prima.curatore.isNotBlank())
+    }
+
+    @Test
+    fun `una playlist radio che cicla non si segna come troncata per sbaglio`() = runBlocking {
+        // «Classici del rock» e' un mix automatico di YouTube Music
+        // (browseId RD…, non un vero elenco fisso): oltre a un certo
+        // punto ricomincia a proporre le stesse canzoni. Contare le
+        // righe grezze invece dei brani unici faceva credere di aver
+        // riempito il tetto di InnerTubeClient dopo poche pagine, quando
+        // in realta' quella playlist non ha altro da offrire.
+        val pagina = client.playlist("VLRDCLAK5uy_nZiG9ehz_MQoWQxY5yElsLHCcG0tv9PRg")
+        println("--- «${pagina.title}»: ${pagina.tracks.size} brani unici, troncata=${pagina.troncata} ---")
+        assertFalse("segnata come troncata ma ha solo ciclato", pagina.troncata)
+        assertTrue("nessun brano", pagina.tracks.isNotEmpty())
+        assertEquals(
+            "brani duplicati nell'elenco finale",
+            pagina.tracks.size,
+            pagina.tracks.distinctBy { it.videoId }.size,
+        )
+    }
+
+    @Test
+    fun `una playlist lunga non si ferma a cento brani`() = runBlocking {
+        // «Top 500 Classic Rock songs» — una playlist pubblica vera,
+        // dichiarata a 500 brani: prima di seguire le continuazioni,
+        // qualunque playlist si fermava esattamente a 100.
+        val pagina = client.playlist("VLPL0GvsLQil0MmYC96KEs_7dTNsLm1PS6JX")
+        println("--- «${pagina.title}»: ${pagina.tracks.size} brani, troncata=${pagina.troncata} ---")
+        assertTrue(
+            "si e' fermata al vecchio tetto di 100: ${pagina.tracks.size}",
+            pagina.tracks.size > 100,
         )
     }
 

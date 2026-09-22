@@ -83,6 +83,11 @@ class InnerTubeClient {
         // vogliono vedere entrambi — il programma sopra, le sue puntate
         // sotto.
         if (kind == SearchKind.PODCAST) return searchPodcasts(query, limit)
+        // Per le playlist, allo stesso modo: «in primo piano» e «della
+        // community» sono due elenchi separati, con un parametro diverso
+        // per ciascuno che non segue lo schema degli altri filtri (vedi
+        // il commento su SearchKind.PLAYLIST).
+        if (kind == SearchKind.PLAYLIST) return searchPlaylists(query, limit)
 
         val root = call("search", buildJsonObject {
             put("query", query)
@@ -92,10 +97,17 @@ class InnerTubeClient {
         return when (kind) {
             SearchKind.BRANI, SearchKind.PODCAST -> SearchResults(
                 kind = kind,
-                tracks = findAll(root, "musicResponsiveListItemRenderer")
-                    .mapNotNull { parseTrack(it) }
-                    .distinctBy { it.videoId }
-                    .take(limit),
+                tracks = prioritizeExplicitDuplicates(
+                    findAll(root, "musicResponsiveListItemRenderer")
+                        .mapNotNull { parseTrack(it) }
+                        // L'audio di un video musicale o caricato da un
+                        // utente non e' quello che chi cerca un "brano"
+                        // vuole sentire: pensato per essere guardato, non
+                        // ascoltato — copertina finta, spesso tagliato
+                        // diverso dall'incisione vera.
+                        .filterNot { it.audioDiVideo }
+                        .distinctBy { it.videoId },
+                ).take(limit),
             )
 
             SearchKind.ALBUM -> SearchResults(
@@ -113,6 +125,10 @@ class InnerTubeClient {
                     .distinctBy { it.browseId }
                     .take(limit),
             )
+
+            // Non si arriva mai qui: PLAYLIST esce prima, in cima alla
+            // funzione, perche' la sua ricerca vera e' un'altra cosa.
+            SearchKind.PLAYLIST -> SearchResults(kind = kind)
         }
     }
 
@@ -140,6 +156,48 @@ class InnerTubeClient {
         }.getOrDefault(emptyList())
 
         return SearchResults(kind = SearchKind.PODCAST, tracks = puntate, shows = programmi)
+    }
+
+    /**
+     * Cerca playlist pubbliche, unendo «in primo piano» (curate da
+     * YouTube Music) e «della community» (fatte dagli utenti): sono due
+     * interrogazioni separate perche' YouTube Music le tiene come due
+     * filtri distinti, ma per chi cerca «una playlist con questo nome»
+     * la distinzione non conta — si vuole vedere entrambe.
+     */
+    private suspend fun searchPlaylists(query: String, limit: Int): SearchResults {
+        suspend fun unaCategoria(params: String) = runCatching {
+            val r = call("search", buildJsonObject {
+                put("query", query)
+                put("params", params)
+            })
+            findAll(r, "musicResponsiveListItemRenderer").mapNotNull { parsePlaylistRef(it) }
+        }.getOrDefault(emptyList())
+
+        val playlist = (unaCategoria(PARAMS_PLAYLIST_PRIMO_PIANO) + unaCategoria(PARAMS_PLAYLIST_COMMUNITY))
+            .distinctBy { it.browseId }
+            .take(limit)
+
+        return SearchResults(kind = SearchKind.PLAYLIST, playlists = playlist)
+    }
+
+    private fun parsePlaylistRef(item: JsonObject): PlaylistRef? {
+        val browseId = browseIdOf(item, "MUSIC_PAGE_TYPE_PLAYLIST") ?: return null
+        val colonne = item["flexColumns"]?.jsonArray ?: return null
+        val testi = colonne.map { runsText(it.jsonObject.values.firstOrNull()?.jsonObject?.get("text")) }
+        val titolo = testi.getOrNull(0)?.takeIf { it.isNotBlank() } ?: return null
+
+        // «Curatore • 11 brani», o «Curatore • 10K visualizzazioni»: la
+        // seconda meta' non e' sempre un conteggio di brani, ma c'e'
+        // sempre un curatore.
+        val parti = testi.getOrNull(1).orEmpty().split(" • ").map { it.trim() }
+        return PlaylistRef(
+            browseId = browseId,
+            title = titolo,
+            curatore = parti.getOrNull(0).orEmpty().ifBlank { "YouTube Music" },
+            info = parti.getOrNull(1)?.takeIf { it.isNotBlank() },
+            thumbnail = bestThumb(item),
+        )
     }
 
     private fun parseShowRef(item: JsonObject): ShowRef? {
@@ -279,6 +337,67 @@ class InnerTubeClient {
     }
 
     /**
+     * La pagina di una playlist pubblica (`browseId` con prefisso `VL`).
+     *
+     * Stesso giro di [album]: un `browse`, e i brani si leggono cercando
+     * `musicResponsiveListItemRenderer` dove capita — che e' il motivo per
+     * cui, a differenza di una ricerca per titolo, questi brani arrivano
+     * gia' con il loro videoId vero e non vanno indovinati.
+     *
+     * Il primo `browse` ne da' al massimo cento: una playlist piu' lunga
+     * finisce con un `continuationItemRenderer` invece che con la fine
+     * vera dell'elenco. Si segue finche' ce n'e' uno, o finche' non si
+     * arriva a [TETTO_PLAYLIST] — serve, perche' una playlist radio
+     * (`RD…`) non finisce mai davvero: senza un tetto la richiesta non si
+     * fermerebbe piu' da sola.
+     */
+    suspend fun playlist(browseId: String): PlaylistPage {
+        var root = call("browse", buildJsonObject { put("browseId", browseId) })
+        val header = findAll(root, "musicResponsiveHeaderRenderer").firstOrNull()
+            ?: findAll(root, "musicDetailHeaderRenderer").firstOrNull()
+
+        // Per videoId e non in una lista: una playlist radio (RD…) puo'
+        // ciclare all'infinito sulle stesse canzoni, e il tetto deve
+        // contare quante ne conosciamo DAVVERO, non quante righe grezze
+        // sono arrivate — altrimenti cento ripetizioni della stessa
+        // ventina di brani avrebbero gia' riempito il tetto da sole.
+        val viste = LinkedHashMap<String, CatalogTrack>()
+        findAll(root, "musicResponsiveListItemRenderer").mapNotNull { parseTrack(it) }
+            .forEach { viste.putIfAbsent(it.videoId, it) }
+
+        var troncata = false
+        var token = nextContinuation(root)
+        while (token != null) {
+            if (viste.size >= TETTO_PLAYLIST) { troncata = true; break }
+            root = call("browse", buildJsonObject { put("continuation", token) })
+            val primaDiQuestaPagina = viste.size
+            findAll(root, "musicResponsiveListItemRenderer").mapNotNull { parseTrack(it) }
+                .forEach { viste.putIfAbsent(it.videoId, it) }
+            // Una pagina che non aggiunge niente di nuovo vuol dire che
+            // il ciclo e' ricominciato: l'abbiamo gia' vista tutta, e
+            // continuare vorrebbe dire richiedere pagine identiche per
+            // sempre. Non e' un taglio — e' la fine vera del contenuto
+            // unico che questa playlist ha da offrire.
+            if (viste.size == primaDiQuestaPagina) break
+            token = nextContinuation(root)
+        }
+
+        return PlaylistPage(
+            browseId = browseId,
+            title = header?.let { runsText(it["title"]) }?.takeIf { it.isNotBlank() }
+                ?: "Importata da YouTube Music",
+            thumbnail = header?.let { bestThumb(it) },
+            tracks = viste.values.toList(),
+            troncata = troncata,
+        )
+    }
+
+    /** Il token per la pagina successiva di un elenco, se ce n'e' una. */
+    private fun nextContinuation(node: JsonElement): String? =
+        findAll(node, "continuationItemRenderer")
+            .firstNotNullOfOrNull { firstString(it, "token") }
+
+    /**
      * La pagina di un podcast.
      *
      * Accetta sia l'identificativo del canale (`UC…`, quello che porta
@@ -398,14 +517,27 @@ class InnerTubeClient {
         val durata = parti.lastOrNull()?.takeIf { DURATA.matches(it) }
         val resto = if (durata != null) parti.dropLast(1) else parti
 
+        // Nella ricerca la durata sta dentro il sottotitolo, spezzata da
+        // «•» insieme al resto («Arctic Monkeys • AM • 4:33»); dentro una
+        // playlist o la pagina di un artista invece non c'e' per niente
+        // li' — sta in una colonna a larghezza fissa a parte, la stessa
+        // che legge anche [parseAlbumTrack]. Senza questo secondo
+        // tentativo ogni brano letto da una playlist risultava senza
+        // durata, pur avendola l'API.
+        val durataFissa = durata ?: item["fixedColumns"]?.jsonArray
+            ?.firstNotNullOfOrNull { c ->
+                runsText(c.jsonObject.values.firstOrNull()?.jsonObject?.get("text"))
+                    .takeIf { DURATA.matches(it) }
+            }
+
         return CatalogTrack(
             videoId = videoId,
             title = titolo,
             artist = (resto.firstOrNull()?.takeIf { it.isNotBlank() } ?: "Sconosciuto")
                 .replace(" e ", ", "),
             album = if (resto.size >= 2) resto[1] else null,
-            durationText = durata,
-            durationSeconds = durata?.let(::parseDuration),
+            durationText = durataFissa,
+            durationSeconds = durataFissa?.let(::parseDuration),
             thumbnail = bestThumb(item),
             // I riferimenti stanno nei singoli pezzi di testo del
             // sottotitolo: «Daft Punk» porta all'artista, «Random Access
@@ -420,6 +552,8 @@ class InnerTubeClient {
             // di dieci.
             showId = browseIdOf(item, "MUSIC_PAGE_TYPE_PODCAST_SHOW_DETAIL_PAGE")
                 ?: browseIdOf(item, "MUSIC_PAGE_TYPE_USER_CHANNEL"),
+            explicit = isExplicit(item),
+            musicVideoType = firstString(item, "musicVideoType"),
         )
     }
 
@@ -445,6 +579,8 @@ class InnerTubeClient {
             durationText = durata,
             durationSeconds = durata?.let(::parseDuration),
             thumbnail = null,   // la mette la pagina dell'album
+            explicit = isExplicit(item),
+            musicVideoType = firstString(item, "musicVideoType"),
         )
     }
 
@@ -557,6 +693,22 @@ class InnerTubeClient {
         }
     }
 
+    /**
+     * Se il brano e' segnato "esplicito".
+     *
+     * Non e' un campo a parte nella risposta: e' un badge fra tanti,
+     * dentro `badges`, riconoscibile dal suo `iconType`. Si cerca con
+     * `findAll` invece di leggere `item["badges"]` direttamente perche'
+     * la profondita' a cui compare non e' garantita — lo stesso motivo
+     * per cui il resto del file non segue mai un percorso fisso.
+     */
+    private fun isExplicit(item: JsonObject): Boolean =
+        findAll(item, "musicInlineBadgeRenderer").any { badge ->
+            val iconType = (badge["icon"]?.jsonObject?.get("iconType") as? JsonPrimitive)
+                ?.contentOrNullSafe()
+            iconType?.contains("EXPLICIT", ignoreCase = true) == true
+        }
+
     private fun bestThumb(node: JsonElement): String? =
         findAll(node, "thumbnail")
             .asSequence()
@@ -587,5 +739,22 @@ class InnerTubeClient {
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0"
         private val DURATA = Regex("""^\d{1,2}:\d{2}(:\d{2})?$""")
         private val ANNO = Regex("""(19|20)\d{2}""")
+
+        // I due filtri delle playlist, presi dai chip veri che l'API
+        // restituisce in una ricerca senza filtro — non seguono lo
+        // schema a due lettere degli altri, quindi si tengono per intero.
+        private const val PARAMS_PLAYLIST_PRIMO_PIANO = "EgeKAQQoADgBahIQBRAJEA4QAxAEEAoQEBAVEBE="
+        private const val PARAMS_PLAYLIST_COMMUNITY = "EgeKAQQoAEABahIQBRAJEA4QAxAEEAoQEBAVEBE="
+
+        /**
+         * Quanti brani al massimo si seguono dentro una playlist.
+         *
+         * Una playlist radio (`RD…`) non ha una fine vera: senza un
+         * tetto, seguirne le continuazioni non si fermerebbe mai da
+         * solo. Mille bastano per qualunque playlist scritta da una
+         * persona, e sono gia' molto piu' di quanto chiunque importi
+         * davvero in un colpo solo.
+         */
+        private const val TETTO_PLAYLIST = 1000
     }
 }

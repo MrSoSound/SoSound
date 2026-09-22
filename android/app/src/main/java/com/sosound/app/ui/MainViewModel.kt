@@ -80,6 +80,14 @@ data class TrackDetails(
     val coverUrl: String? get() = catalog?.thumbnail
     val durationText: String
         get() = owned?.durationText ?: catalog?.durationText ?: "--:--"
+    /**
+     * Solo dal catalogo: un brano posseduto (`TrackEntity`) non porta
+     * questo dato — aggiungerlo li' vorrebbe una migrazione del
+     * database per un'informazione che i brani gia' scaricati non
+     * hanno comunque mai avuto. Per un brano visto dalla ricerca invece
+     * c'e' sempre.
+     */
+    val explicit: Boolean get() = catalog?.explicit == true
 }
 
 @UnstableApi
@@ -215,6 +223,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /**
+     * Unisce due o piu' playlist in una coda sola, mischiata, e la avvia.
+     *
+     * Legge i brani di ogni playlist con [PlaylistDao.tracksOf] (una
+     * lettura sola, non un flusso: qui serve uno scatto del contenuto
+     * attuale, non restare in ascolto) e passa il resto a [mixPlaylists],
+     * che decide unione, doppioni e mescolamento. Vedi li' il perche' la
+     * lista nasce gia' mischiata invece di affidarsi allo shuffle del
+     * player.
+     */
+    fun mixAndPlay(playlistIds: List<Long>) = viewModelScope.launch {
+        val gruppi = playlistIds.map { playlistDao.tracksOf(it) }
+        val mix = mixPlaylists(gruppi)
+        if (mix.isNotEmpty()) play(mix, 0)
+    }
+
+    /**
      * Mette in libreria un brano del catalogo, senza scaricarlo.
      *
      * E' la riga che permette a un brano di esistere prima di avere un
@@ -303,6 +327,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun resetImport() { _import.value = ImportState.Idle }
 
     private val spotify = com.sosound.app.data.importing.SpotifyLink()
+    private val ytMusic = com.sosound.app.data.importing.YtMusicLink()
 
     /**
      * Importa da un link di Spotify incollato.
@@ -324,6 +349,38 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                         "tutto: se la playlist è più lunga, il resto non arriva."
                 }
                 importRows(lista.rows, lista.name)
+            },
+            onFailure = {
+                _import.value = ImportState.Failed(
+                    it.message ?: "Non sono riuscito a leggere quel link."
+                )
+            },
+        )
+    }
+
+    /**
+     * Importa da un link di playlist di YouTube Music.
+     *
+     * Il link porta gia' l'identificativo della playlist: niente ricerca,
+     * niente punteggio. Ogni brano arriva con il suo videoId vero e parte
+     * come abbinamento sicuro — vedi [importCertainTracks].
+     */
+    fun startImportFromYtMusicLink(url: String) = viewModelScope.launch {
+        _import.value = ImportState.Working(0, 0)
+        ytMusic.fetch(url).fold(
+            onSuccess = { lista ->
+                if (lista.troncata) {
+                    // Come per Spotify: dirlo prima, non lasciare che un
+                    // «1000 su 1000» sembri un risultato completo. Capita
+                    // soprattutto con le playlist radio (RD…), che non
+                    // finiscono mai davvero.
+                    _backupMsg.value =
+                        "Questa playlist continua oltre i ${lista.tracks.size} brani: " +
+                        "è una playlist molto lunga o una radio automatica di YouTube " +
+                        "Music, che non ha una fine vera. Importati solo i primi " +
+                        "${lista.tracks.size}."
+                }
+                importCertainTracks(lista.tracks, lista.name)
             },
             onFailure = {
                 _import.value = ImportState.Failed(
@@ -380,7 +437,81 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             _import.value = ImportState.Working(i + 1, righe.size)
         }
 
+        // In cima le righe che hanno bisogno di una persona: non trovate,
+        // poi incerte, infine quelle gia' sicure.
+        _import.value = ImportState.Review(nome, esiti.ordinataPerRevisione())
+    }
+
+    /**
+     * Come [importRows], ma per brani che arrivano gia' identificati con
+     * certezza — un `videoId` vero letto da una playlist di YouTube
+     * Music, non un titolo da cercare. Non passa da [TrackMatcher]: non
+     * c'e' niente da indovinare quando si sa gia' esattamente qual e' il
+     * brano.
+     */
+    private suspend fun importCertainTracks(tracce: List<CatalogTrack>, nome: String) {
+        _import.value = ImportState.Working(0, tracce.size)
+        val posseduti = ownedIds.value
+
+        val esiti = tracce.mapIndexed { i, t ->
+            // Qui il brano non e' cercato, e' gia' quello vero della
+            // playlist di origine — anche quando e' l'audio di un video.
+            // Non lo si scarta come fa la ricerca (sarebbe importare
+            // un'altra canzone al posto di quella scelta): si cerca solo
+            // un'alternativa pulita da proporre, senza sostituirla da
+            // soli.
+            val alternative = if (t.audioDiVideo) {
+                runCatching { catalog.search("${t.artist} ${t.title}", limit = 5) }
+                    .getOrDefault(emptyList())
+                    .filterNot { it.videoId == t.videoId }
+            } else emptyList()
+
+            _import.value = ImportState.Working(i + 1, tracce.size)
+            ImportEntry(
+                row = ImportRow(
+                    title = t.title,
+                    artist = t.artist,
+                    album = t.album,
+                    durationSeconds = t.durationSeconds,
+                ),
+                match = t,
+                confidence = Confidence.SICURO,
+                score = 1.0,
+                alternatives = alternative,
+                selected = true,
+                alreadyOwned = t.videoId in posseduti,
+            )
+        }
+
         _import.value = ImportState.Review(nome, esiti)
+    }
+
+    /**
+     * Sostituisce in blocco ogni riga segnata come "audio di un video" con
+     * la sua alternativa pulita, quando ce n'e' una pronta.
+     *
+     * Una sola per volta si fa gia' con [pickForEntry]; questa serve
+     * quando sono tante — rifarlo riga per riga sarebbe un tocco a testa
+     * su una playlist che puo' averne decine.
+     */
+    fun replaceAllVideoTracks() {
+        val stato = _import.value as? ImportState.Review ?: return
+        _import.value = stato.copy(
+            entries = stato.entries.map { e ->
+                val pulito = e.alternatives.firstOrNull { !it.audioDiVideo }
+                if (e.match?.audioDiVideo == true && pulito != null) {
+                    e.copy(
+                        match = pulito,
+                        confidence = Confidence.SICURO,
+                        score = 1.0,
+                        selected = true,
+                        alreadyOwned = pulito.videoId in ownedIds.value,
+                        alternatives = (e.alternatives + e.match)
+                            .filter { it.videoId != pulito.videoId },
+                    )
+                } else e
+            }
+        )
     }
 
     fun toggleEntry(index: Int) {
@@ -392,21 +523,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** Sceglie una delle alternative per una riga incerta. */
-    fun pickAlternative(index: Int, alternative: com.sosound.app.data.catalog.CatalogTrack) {
+    /**
+     * Sceglie uno dei candidati proposti per una riga — incerta, o non
+     * trovata ma con qualche alternativa a bassa fiducia.
+     *
+     * Funziona anche quando [candidate] e' gia' il risultato principale:
+     * in quel caso equivale a confermarlo, senza toccare le alternative.
+     */
+    fun pickForEntry(index: Int, candidate: com.sosound.app.data.catalog.CatalogTrack) {
         val stato = _import.value as? ImportState.Review ?: return
         _import.value = stato.copy(
             entries = stato.entries.mapIndexed { i, e ->
-                if (i != index) e else e.copy(
-                    match = alternative,
+                if (i != index) e
+                else if (candidate.videoId == e.match?.videoId) e.copy(selected = true)
+                else e.copy(
+                    match = candidate,
                     // Scegliendo a mano la confidenza diventa massima:
                     // l'ha deciso una persona.
                     confidence = Confidence.SICURO,
                     score = 1.0,
                     selected = true,
-                    alreadyOwned = alternative.videoId in ownedIds.value,
+                    alreadyOwned = candidate.videoId in ownedIds.value,
                     alternatives = (e.alternatives + listOfNotNull(e.match))
-                        .filter { it.videoId != alternative.videoId },
+                        .filter { it.videoId != candidate.videoId },
                 )
             }
         )
@@ -415,6 +554,27 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun renameImport(name: String) {
         val stato = _import.value as? ImportState.Review ?: return
         _import.value = stato.copy(name = name)
+    }
+
+    /**
+     * Manda alla scheda «Cerca» con titolo e artista di [entry] gia'
+     * scritti nel campo — il recupero a mano per una riga che il
+     * catalogo non e' riuscito a trovare da solo.
+     *
+     * Chiude l'import ma non lo azzera (niente [resetImport]): l'utente
+     * puo' tornare indietro e ritrovare la revisione dov'era, con questa
+     * riga ancora li' se non l'ha aggiunta alla libreria dalla ricerca.
+     */
+    fun searchManually(entry: ImportEntry) {
+        val query = "${entry.row.artist} ${entry.row.title}".trim()
+        setImportOpen(false)
+        _search.value = _search.value.copy(
+            kind = SearchKind.BRANI,
+            query = query,
+            results = SearchResults(SearchKind.BRANI),
+        )
+        rilancia(immediato = true)
+        _goToSearch.value = true
     }
 
     /** Crea la playlist e mette in coda quello che manca. */
@@ -580,6 +740,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private val _podcastPage = MutableStateFlow<PodcastPage?>(null)
     val podcastPage: StateFlow<PodcastPage?> = _podcastPage
 
+    private val _playlistPage = MutableStateFlow<com.sosound.app.data.catalog.PlaylistPage?>(null)
+    val playlistPage: StateFlow<com.sosound.app.data.catalog.PlaylistPage?> = _playlistPage
+
     private val _browsing = MutableStateFlow(false)
     val browsing: StateFlow<Boolean> = _browsing
 
@@ -594,6 +757,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         data class Album(val id: String) : Tappa
         data class Artista(val id: String) : Tappa
         data class Podcast(val id: String) : Tappa
+        data class Playlist(val id: String) : Tappa
     }
 
     private val pila = mutableListOf<Tappa>()
@@ -604,6 +768,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun openAlbum(browseId: String) = vai(Tappa.Album(browseId))
     fun openArtist(browseId: String) = vai(Tappa.Artista(browseId))
     fun openPodcast(browseId: String) = vai(Tappa.Podcast(browseId))
+    // Non "openPlaylist": quel nome è già preso da una playlist LOCALE
+    // aperta in Libreria (id numerico). Questa apre una playlist
+    // PUBBLICA di YouTube Music, trovata cercando (browseId).
+    fun browsePlaylist(browseId: String) = vai(Tappa.Playlist(browseId))
 
     private fun vai(t: Tappa) {
         pila += t
@@ -615,10 +783,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _albumPage.value = null
         _artistPage.value = null
         _podcastPage.value = null
+        _playlistPage.value = null
         when (t) {
             is Tappa.Album -> _albumPage.value = runCatching { catalog.album(t.id) }.getOrNull()
             is Tappa.Artista -> _artistPage.value = runCatching { catalog.artist(t.id) }.getOrNull()
             is Tappa.Podcast -> _podcastPage.value = runCatching { catalog.podcast(t.id) }.getOrNull()
+            is Tappa.Playlist -> _playlistPage.value = runCatching { catalog.playlist(t.id) }.getOrNull()
         }
         _browsing.value = false
         _canGoBack.value = pila.isNotEmpty()
@@ -638,6 +808,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         _albumPage.value = null
         _artistPage.value = null
         _podcastPage.value = null
+        _playlistPage.value = null
     }
 
     // --------------------------------------------------- le proposte
@@ -684,6 +855,28 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
     }
+
+    /** Scarica tutti i brani di una playlist pubblica di YouTube Music
+     *  trovata cercando — stesso giro di [downloadAlbum]. */
+    fun downloadPublicPlaylist(page: com.sosound.app.data.catalog.PlaylistPage) {
+        page.tracks.forEach { t ->
+            queue.enqueue(t.copy(thumbnail = t.thumbnail ?: page.thumbnail))
+        }
+    }
+
+    /** Scarica una playlist pubblica e la mette tutta in una playlist
+     *  nostra — stesso giro di [albumToPlaylist]. */
+    fun publicPlaylistToPlaylist(page: com.sosound.app.data.catalog.PlaylistPage, playlistId: Long) =
+        viewModelScope.launch {
+            for (t in page.tracks) {
+                if (t.videoId in ownedIds.value) {
+                    playlistDao.addTrack(playlistId, t.videoId)
+                } else {
+                    inAttesaDiPlaylist[t.videoId] = playlistId
+                    queue.enqueue(t.copy(thumbnail = t.thumbnail ?: page.thumbnail))
+                }
+            }
+        }
 
     /**
      * Le raccolte ricostruite dai brani scaricati.
@@ -738,6 +931,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             player.play(listOf(owned), 0)
             return@launch
         }
+        val riferimento = riferimentoPer(track)
+        player.play(listOf(riferimento), 0)
+        // La copertina si prende comunque: e' piccola, e senza, la
+        // schermata di blocco resta vuota mentre il brano suona.
+        launch { runCatching { copertinaPerRiferimento(riferimento, track.thumbnail) } }
+    }
+
+    /**
+     * Un brano del catalogo che non e' ancora nostro, pero' nel
+     * database: di passaggio, sta nella cache e non negli elenchi ne'
+     * nell'indice. Lo diventa per davvero se lo si mette in una
+     * playlist o si sceglie di tenerlo. Usato per farlo suonare subito
+     * ([playFromSearch]) e per metterlo in coda senza scaricarlo prima
+     * ([addToQueue], [playNext]).
+     */
+    private suspend fun riferimentoPer(track: CatalogTrack): TrackEntity {
         val riferimento = TrackEntity(
             videoId = track.videoId,
             title = track.title,
@@ -749,16 +958,47 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             sizeBytes = 0,
             addedAt = System.currentTimeMillis(),
             showId = track.showId,
-            // Di passaggio: sta nella cache, non negli elenchi e non
-            // nell'indice. Lo diventa se lo metti in una playlist o se
-            // scegli di tenerlo.
             salvato = false,
         )
         dao.upsert(riferimento)
-        player.play(listOf(riferimento), 0)
-        // La copertina si prende comunque: e' piccola, e senza, la
-        // schermata di blocco resta vuota mentre il brano suona.
-        launch { runCatching { copertinaPerRiferimento(riferimento, track.thumbnail) } }
+        return riferimento
+    }
+
+    /**
+     * Mette in coda di riproduzione un brano trovato cercando, anche se
+     * non e' ancora sul telefono — prima si poteva solo con un brano
+     * gia' scaricato.
+     *
+     * Entra come riferimento (vedi [riferimentoPer]), cosi' la coda lo
+     * tratta come un brano vero, e si scarica da solo in sottofondo
+     * sulla stessa coda di scaricamento del tasto «+» — cosi' e' gia'
+     * pronto quando arriva il suo turno, invece di fermare la
+     * riproduzione nel momento in cui tocca a lui per risolverlo dalla
+     * rete. L'avviso in fondo allo schermo dice che e' successo: senza,
+     * toccare «aggiungi alla coda» su un brano mai sentito prima
+     * sembrerebbe non aver fatto niente.
+     */
+    fun addToQueue(track: CatalogTrack) = codaDalCatalogo(track, subito = false)
+
+    /** Come [addToQueue] ma lo mette subito dopo il brano in ascolto. */
+    fun playNext(track: CatalogTrack) = codaDalCatalogo(track, subito = true)
+
+    private fun codaDalCatalogo(track: CatalogTrack, subito: Boolean) = viewModelScope.launch {
+        val owned = dao.byId(track.videoId)
+        val voce = owned ?: riferimentoPer(track).also { r ->
+            launch { runCatching { copertinaPerRiferimento(r, track.thumbnail) } }
+        }
+        if (subito) player.playNext(voce) else player.addToQueue(voce)
+
+        _backupMsg.value = if (owned != null) {
+            if (subito) "«${track.title}» è la prossima." else "«${track.title}» aggiunta alla coda."
+        } else {
+            // Solo in cache: metterlo in coda non e' una scelta di
+            // tenerlo. Se lo si vuole anche dopo, si salva a parte —
+            // dal player o dalla sua scheda.
+            queue.enqueue(track, salvato = false)
+            "«${track.title}» ${if (subito) "è la prossima" else "in coda"}: si scarica in sottofondo."
+        }
     }
 
     /** Scarica solo l'immagine, non l'audio. */
@@ -788,6 +1028,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun tieniSenzaRete(videoId: String) = viewModelScope.launch {
         val t = dao.byId(videoId) ?: return@launch
         dao.segnaSalvato(videoId)
+        // Anche nella coda che sta gia' suonando, e subito: chi guarda
+        // l'ascolto vuole vedere il tasto cambiare nello stesso istante
+        // in cui lo tocca, non quando lo scaricamento (che puo' metterci
+        // secondi) sarà finito.
+        player.aggiorna(t.copy(salvato = true))
         if (t.haFile) return@launch
 
         // Prima si guarda se ce l'abbiamo gia'.
@@ -1305,6 +1550,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // -------------------------------------------- aggiornamento dell'app
 
     val appUpdateState: StateFlow<UpdateState> = appUpdateManager.state
+    val appUpdateDisponibile: Boolean get() = appUpdateManager.disponibile
     val appCurrentVersion: String get() = appUpdateManager.currentVersion
 
     /** Il tasto «Controlla aggiornamenti» in Impostazioni. */
@@ -1393,7 +1639,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val dentroUnaSottoschermata: StateFlow<Boolean> =
         combine(
             openPlaylist, importOpen, openLocalAlbum,
-            albumPage, artistPage, podcastPage,
+            albumPage, artistPage, podcastPage, playlistPage,
         ) { valori -> valori.any { it != null && it != false } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, false)
     fun openImportFromOnboarding() { _apriImport.value = true; _goToLibrary.value = true }

@@ -5,7 +5,27 @@ data class ImportRow(
     val title: String,
     val artist: String,
     val album: String? = null,
-)
+    /**
+     * La durata dichiarata da Spotify, quando c'e'. Non serve a cercare —
+     * per quello bastano titolo e artista — ma serve a **decidere** fra
+     * risultati che si chiamano allo stesso modo: un radio edit e la
+     * versione da album hanno lo stesso titolo e un'altra durata, e senza
+     * questo numero la differenza non si vede finche' non si ascolta.
+     */
+    val durationSeconds: Int? = null,
+    /**
+     * Se Spotify lo segna esplicito, quando lo sappiamo.
+     *
+     * Null vuol dire "non lo sappiamo" — un CSV senza questa colonna, o
+     * un elenco incollato a mano — e non "non e' esplicito": sono due
+     * cose diverse, e trattarle come la stessa penalizzerebbe in fase
+     * di abbinamento una versione esplicita che invece era giusta.
+     */
+    val explicit: Boolean? = null,
+) {
+    val durationText: String?
+        get() = durationSeconds?.let { "%d:%02d".format(it / 60, it % 60) }
+}
 
 /**
  * Legge le playlist esportate dagli altri servizi.
@@ -26,6 +46,13 @@ object PlaylistFile {
     private val TITOLO = listOf("track name", "title", "titolo", "song", "name", "brano", "canzone")
     private val ARTISTA = listOf("artist name(s)", "artist name", "artist", "artista", "artists", "interprete")
     private val ALBUM = listOf("album name", "album")
+    // Exportify scrive "Duration (ms)"; teniamo anche le varianti piu'
+    // ovvie nel caso cambi esportatore.
+    private val DURATA = listOf("duration (ms)", "duration_ms", "duration ms", "track duration (ms)", "duration")
+    // Exportify la scrive "Explicit", con "true"/"false" come valore:
+    // non c'e' negli export piu' vecchi ne' in TuneMyMusic, quindi si
+    // cerca senza pretendere che ci sia.
+    private val ESPLICITO = listOf("explicit", "esplicito")
 
     fun parse(text: String): List<ImportRow> {
         val righe = text.lineSequence()
@@ -49,6 +76,9 @@ object PlaylistFile {
         val iTitolo = trovaColonna(intestazione, TITOLO) ?: return emptyList()
         val iArtista = trovaColonna(intestazione, ARTISTA) ?: return emptyList()
         val iAlbum = trovaColonna(intestazione, ALBUM)
+        val iDurata = trovaColonna(intestazione, DURATA)
+        val durataInMs = iDurata != null && intestazione[iDurata].contains("ms")
+        val iEsplicito = trovaColonna(intestazione, ESPLICITO)
 
         return righe.drop(1).mapNotNull { riga ->
             val campi = splitCsvLine(riga)
@@ -61,6 +91,22 @@ object PlaylistFile {
                 // campo: teniamo il primo, e' quello che conta per cercare.
                 artist = artista.split(",").first().trim(),
                 album = iAlbum?.let { campi.getOrNull(it)?.trim() }?.takeIf { it.isNotBlank() },
+                durationSeconds = iDurata?.let { campi.getOrNull(it)?.trim()?.toLongOrNull() }
+                    ?.let { if (durataInMs) (it / 1000).toInt() else it.toInt() }
+                    // Una colonna chiamata solo "duration" a volte e' gia'
+                    // in millisecondi (capita con export non standard): un
+                    // brano non dura ventimila secondi, quindi se il numero
+                    // e' assurdo come secondi lo si rilegge come millisecondi.
+                    ?.let { if (!durataInMs && it > 1800) it / 1000 else it }
+                    ?.takeIf { it > 0 },
+                explicit = iEsplicito?.let { campi.getOrNull(it)?.trim()?.lowercase() }
+                    ?.let { v ->
+                        when (v) {
+                            "true", "1", "si", "sì", "yes" -> true
+                            "false", "0", "no" -> false
+                            else -> null   // valore che non riconosciamo: meglio "non lo so"
+                        }
+                    },
             )
         }
     }

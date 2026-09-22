@@ -17,7 +17,19 @@ enum class SearchKind(val label: String, val filter: String) {
      * e si ascoltano esattamente come una canzone — che e' tutto quello
      * che serve, visto che dei podcast vogliamo solo l'audio.
      */
-    PODCAST("Podcast", "JI");
+    PODCAST("Podcast", "JI"),
+
+    /**
+     * Le playlist non seguono la stessa codifica a due lettere delle
+     * altre righe: YouTube Music le divide in "in primo piano" (quelle
+     * curate da YouTube Music) e "della community" (quelle fatte dagli
+     * utenti), con un parametro piu' lungo e diverso per ciascuna — non
+     * un singolo codice dentro lo schema `EgWKAQ<due lettere>AWo…`.
+     * `filter` qui resta vuoto e non va letto: la ricerca delle playlist
+     * e' gestita a parte in `InnerTubeClient.searchPlaylists`, con le
+     * due stringhe vere.
+     */
+    PLAYLIST("Playlist", "");
 
     val params: String get() = "EgWKAQ" + filter + "AWoMEA4QChADEAQQCRAF"
 
@@ -52,6 +64,20 @@ data class ArtistRef(
     val thumbnail: String? = null,
 )
 
+/** Una playlist pubblica trovata nella ricerca: abbastanza per mostrarla
+ *  in lista, prima di aprirla per vederne la scaletta. */
+data class PlaylistRef(
+    val browseId: String,
+    val title: String,
+    val curatore: String,
+    /** «11 brani», o a volte solo le visualizzazioni — YouTube Music non
+     *  garantisce quale delle due, ma dice sempre qualcosa. */
+    val info: String? = null,
+    val thumbnail: String? = null,
+) {
+    val subtitle: String get() = listOfNotNull(curatore, info).joinToString(" · ")
+}
+
 /** La pagina di un album, con la sua scaletta. */
 data class AlbumPage(
     val browseId: String,
@@ -80,11 +106,29 @@ data class SearchResults(
     val albums: List<AlbumRef> = emptyList(),
     val artists: List<ArtistRef> = emptyList(),
     val shows: List<ShowRef> = emptyList(),
+    val playlists: List<PlaylistRef> = emptyList(),
 ) {
     val isEmpty: Boolean
-        get() = tracks.isEmpty() && albums.isEmpty() && artists.isEmpty() && shows.isEmpty()
-    val size: Int get() = tracks.size + albums.size + artists.size + shows.size
+        get() = tracks.isEmpty() && albums.isEmpty() && artists.isEmpty() &&
+            shows.isEmpty() && playlists.isEmpty()
+    val size: Int get() = tracks.size + albums.size + artists.size + shows.size + playlists.size
 }
+
+/** La pagina di una playlist pubblica, con la sua scaletta. */
+data class PlaylistPage(
+    val browseId: String,
+    val title: String,
+    val thumbnail: String? = null,
+    val tracks: List<CatalogTrack> = emptyList(),
+    /**
+     * Vero se ci si e' fermati a [InnerTubeClient.TETTO_PLAYLIST] invece
+     * che alla fine vera della playlist — una playlist radio (`RD…`) e'
+     * di fatto senza fine, e alcune playlist ufficiali passano le
+     * migliaia di brani. Detto qui invece che scoperto in silenzio,
+     * stesso principio di `forsePiuDiCosi` per Spotify.
+     */
+    val troncata: Boolean = false,
+)
 
 /** La pagina di un podcast, con le sue puntate. */
 data class PodcastPage(

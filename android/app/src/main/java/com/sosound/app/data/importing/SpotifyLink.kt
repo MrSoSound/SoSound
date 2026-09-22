@@ -117,11 +117,24 @@ class SpotifyLink {
         // «subtitle» e' l'artista; con piu' artisti sono separati da
         // virgola, e per cercare basta il primo.
         val artista = o["subtitle"]?.stringOrNull()?.split(",")?.first()?.trim().orEmpty()
-        return ImportRow(title = titolo, artist = artista)
+        // La pagina di anteprima porta anche la durata in millisecondi:
+        // non serve a trovare il brano, ma a scegliere fra due risultati
+        // che si chiamano uguale e durano diverso.
+        val durata = o["duration"]?.longOrNull()?.let { (it / 1000).toInt() }?.takeIf { it > 0 }
+        // La pagina di anteprima porta anche se il brano e' esplicito:
+        // un booleano vero, non un'etichetta di testo da interpretare.
+        val esplicito = o["isExplicit"]?.boolOrNull()
+        return ImportRow(title = titolo, artist = artista, durationSeconds = durata, explicit = esplicito)
     }
 
     private fun JsonElement.stringOrNull(): String? =
         (this as? JsonPrimitive)?.let { if (it.isString) it.content else null }
+
+    private fun JsonElement.longOrNull(): Long? =
+        (this as? JsonPrimitive)?.let { if (!it.isString) it.content.toLongOrNull() else null }
+
+    private fun JsonElement.boolOrNull(): Boolean? =
+        (this as? JsonPrimitive)?.let { if (!it.isString) it.content.toBooleanStrictOrNull() else null }
 
     fun close() = http.close()
 

@@ -21,8 +21,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -36,6 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
 import coil.compose.AsyncImage
@@ -56,6 +61,20 @@ fun PlayerBar(vm: MainViewModel, onExpand: () -> Unit) {
     val accent by vm.accent.collectAsState()
     val track = state.current ?: return
 
+    // Il brano in ascolto puo' essere anche quello che sta scaricando in
+    // questo momento — capita scaricandolo apposta mentre lo si ascolta
+    // gia' in streaming. La copertina qui e' piccola, ma l'anello resta
+    // leggibile lo stesso: e' lo stesso linguaggio delle righe sopra.
+    val downloads by vm.downloads.collectAsState()
+    // In coda di scaricamento ha la precedenza, perche' porta una
+    // percentuale vera. Senza quella, ma con l'audio che ancora non
+    // esce, resta il caso di un brano appena toccato che sta risolvendo
+    // il suo indirizzo in streaming (un paio di secondi, sempre) — un
+    // anello indeterminato dice comunque "sto lavorando", non "mi sono
+    // bloccato".
+    val download = CoverDownload.da(downloads.firstOrNull { it.track.videoId == track.videoId })
+        ?: CoverDownload.InAttesa.takeIf { state.isBuffering }
+
     // Il passaggio da un brano all'altro e' una dissolvenza: uno stacco
     // secco attirerebbe l'occhio su un dettaglio che non lo merita.
     val tint by animateColorAsState(accent.color, tween(600), label = "tinta")
@@ -68,10 +87,23 @@ fun PlayerBar(vm: MainViewModel, onExpand: () -> Unit) {
     val soglia = with(densita) { 44.dp.toPx() }
     var salita by remember { mutableFloatStateOf(0f) }
 
+    // La barra sale col dito invece di restare ferma finche' non si
+    // stacca: senza, il gesto sembrava non fare niente per tutta la sua
+    // durata e poi "saltava" alla schermata intera di colpo. snap()
+    // mentre il dito e' giu' la fa seguire 1:1; spring() al rilascio la
+    // fa tornare al suo posto con un rimbalzo, sia che si apra
+    // l'ascolto sia che il gesto non abbia superato la soglia.
+    val scostamento by animateFloatAsState(
+        -salita,
+        animationSpec = if (salita == 0f) spring() else snap(),
+        label = "salitaBarra",
+    )
+
     Column(
         Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp)
+            .offset { IntOffset(0, scostamento.toInt()) }
             .glass(Vetro.BarShape, strong = true)
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
@@ -83,7 +115,10 @@ fun PlayerBar(vm: MainViewModel, onExpand: () -> Unit) {
                 ) { _, delta ->
                     // Solo verso l'alto: trascinare in giu' una barra
                     // che sta gia' in fondo non porta da nessuna parte.
-                    salita = (salita - delta).coerceAtLeast(0f)
+                    // Il tetto e' un peek, non una corsa: oltre un certo
+                    // punto la barra non deve sembrare in fuga verso
+                    // l'alto, la schermata intera ci pensa da sola.
+                    salita = (salita - delta).coerceIn(0f, with(densita) { 120.dp.toPx() })
                 }
             }
             .clickable(onClick = onExpand),
@@ -129,6 +164,7 @@ fun PlayerBar(vm: MainViewModel, onExpand: () -> Unit) {
                     Icon(Icons.Default.MusicNote, null, tint = Vetro.InkFaint,
                         modifier = Modifier.size(18.dp))
                 }
+                if (download != null) CoverDownloadOverlay(download, accent = tint)
             }
 
             Column(Modifier.weight(1f)) {

@@ -160,12 +160,25 @@ class AudioFocusHandler(
          *  e' il guasto peggiore dei due. */
         private const val MASSIMO_ABBASSATO = 8_000L
 
+        /** Quante chiamate di fila devono vedere un suono altrui prima
+         *  di abbassare. Vedi «I due irrobustimenti» piu' sopra. */
+        private const val MINIMO_VOLTE_DI_FILA = 2
+
+        /**
+         * `USAGE_ASSISTANCE_SONIFICATION` non c'e' di proposito: e' il
+         * bollino che Android mette sui suoni di interfaccia — il "click"
+         * di un tasto, il bip di conferma di un'app — non solo sulle
+         * notifiche vere. WhatsApp lo usa per il suono del messaggio
+         * inviato, e con questo bollino dentro l'insieme ogni messaggio
+         * mandato abbassava la musica come se fosse arrivata una
+         * notifica. Tolto: quel suono non e' qualcosa che l'utente vuole
+         * sentire sopra la musica, e' un feedback per chi sta scrivendo.
+         */
         private val USI_DA_SENTIRE = setOf(
             AudioAttributes.USAGE_NOTIFICATION,
             AudioAttributes.USAGE_NOTIFICATION_RINGTONE,
             AudioAttributes.USAGE_NOTIFICATION_EVENT,
             AudioAttributes.USAGE_ALARM,
-            AudioAttributes.USAGE_ASSISTANCE_SONIFICATION,
             AudioAttributes.USAGE_ASSISTANT,
         )
     }
@@ -196,6 +209,29 @@ class AudioFocusHandler(
      * senza permessi speciali vede una versione ripulita. Dove
      * l'informazione manca non si fa niente — meglio non abbassare che
      * abbassare a caso.
+     *
+     * ## L'irrobustimento contro il volume che si alza da solo
+     *
+     * Segnalato su un dispositivo fuori da quelli di prova: si abbassa
+     * e si rialza da solo dopo `MASSIMO_ABBASSATO`, a ogni singolo
+     * brano — su altoparlante e su auricolari, sempre. Mai riprodotto
+     * sui telefoni provati finora (compreso l'emulatore), il che punta
+     * a una particolarita' di quel dispositivo: un livello di
+     * post-elaborazione audio del produttore, o una versione di Android
+     * che riporta `AudioPlaybackConfiguration` in modo diverso in quel
+     * primo istante.
+     *
+     * `AudioPlaybackConfiguration` non espone pubblicamente ne' un
+     * identificativo di sessione ne' il pacchetto d'origine (e' proprio
+     * il "un'app senza permessi speciali vede una versione ripulita" di
+     * cui sopra) — quindi non c'e' modo di escludere per certo la nostra
+     * stessa riproduzione da [configs] confrontandola con qualcosa di
+     * nostro. Quello che si puo' fare senza riprodurre il guasto e'
+     * togliere fiducia a un singolo fotogramma: serve vedere «altrui»
+     * per [MINIMO_VOLTE_DI_FILA] chiamate di fila prima di abbassare. Un
+     * vero suono di notifica dura ben piu' di una chiamata; un
+     * fotogramma isolato, prima che i nostri `AudioAttributes` si
+     * stabilizzino o durante un rimbalzo del sistema, no.
      */
     private val osservatore = object : AudioManager.AudioPlaybackCallback() {
         override fun onPlaybackConfigChanged(configs: MutableList<AudioPlaybackConfiguration>) {
@@ -204,7 +240,8 @@ class AudioFocusHandler(
             quantiAltri = altri
 
             if (altri > 0) {
-                if (player.playWhenReady && vuoleSentirle()) {
+                volteDiFilaAltrui++
+                if (volteDiFilaAltrui >= MINIMO_VOLTE_DI_FILA && player.playWhenReady && vuoleSentirle()) {
                     manina.removeCallbacks(rialzaDaSolo)
                     abbassa()
                     // Una rete di sicurezza: se la sparizione non
@@ -213,6 +250,7 @@ class AudioFocusHandler(
                     riprendiTraPoco(MASSIMO_ABBASSATO)
                 }
             } else {
+                volteDiFilaAltrui = 0
                 // Non si rialza di scatto.
                 //
                 // Un bip dura un secondo: abbassare e rialzare dentro
@@ -224,6 +262,10 @@ class AudioFocusHandler(
             }
         }
     }
+
+    /** Quante chiamate di fila hanno visto un suono altrui: si abbassa
+     *  solo alla seconda, non alla prima. Vedi il commento sopra. */
+    private var volteDiFilaAltrui = 0
 
     /** L'ultima volta che un'altra app ha suonato qualcosa, o 0. */
     @Volatile var ultimoSuonoAltrui: Long = 0

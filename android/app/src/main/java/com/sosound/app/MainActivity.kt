@@ -100,6 +100,7 @@ private enum class Pagina(val gruppo: Tab, val etichetta: String) {
     CERCA_ALBUM(Tab.CERCA, "Album"),
     CERCA_ARTISTI(Tab.CERCA, "Artisti"),
     CERCA_PODCAST(Tab.CERCA, "Podcast"),
+    CERCA_PLAYLIST(Tab.CERCA, "Playlist"),
     IMPOSTAZIONI(Tab.IMPOSTAZIONI, "Impostazioni");
 
     /** Il tipo di ricerca che questa pagina mostra. */
@@ -107,6 +108,7 @@ private enum class Pagina(val gruppo: Tab, val etichetta: String) {
         CERCA_ALBUM -> SearchKind.ALBUM
         CERCA_ARTISTI -> SearchKind.ARTISTI
         CERCA_PODCAST -> SearchKind.PODCAST
+        CERCA_PLAYLIST -> SearchKind.PLAYLIST
         else -> SearchKind.BRANI
     }
 
@@ -206,6 +208,7 @@ private fun Root(vm: MainViewModel = viewModel()) {
             Pagina.CERCA_ALBUM -> vm.onKindChange(SearchKind.ALBUM)
             Pagina.CERCA_ARTISTI -> vm.onKindChange(SearchKind.ARTISTI)
             Pagina.CERCA_PODCAST -> vm.onKindChange(SearchKind.PODCAST)
+            Pagina.CERCA_PLAYLIST -> vm.onKindChange(SearchKind.PLAYLIST)
             else -> Unit
         }
     }
@@ -217,6 +220,7 @@ private fun Root(vm: MainViewModel = viewModel()) {
             SearchKind.ALBUM -> Pagina.CERCA_ALBUM
             SearchKind.ARTISTI -> Pagina.CERCA_ARTISTI
             SearchKind.PODCAST -> Pagina.CERCA_PODCAST
+            SearchKind.PLAYLIST -> Pagina.CERCA_PLAYLIST
         }
         if (voluta != paginaCorrente) nastro.animateScrollToPage(pagine.indexOf(voluta))
     }

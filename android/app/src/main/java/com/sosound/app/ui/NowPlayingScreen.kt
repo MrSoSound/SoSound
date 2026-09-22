@@ -27,6 +27,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Cast
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.DownloadForOffline
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
@@ -102,15 +104,25 @@ fun NowPlayingScreen(vm: MainViewModel, onClose: () -> Unit) {
     val fraction = if (scrubbing) scrubValue
     else (state.positionMs.toFloat() / duration).coerceIn(0f, 1f)
 
-    // Trascinare in basso chiude, come in ogni altro lettore.
+    // Trascinare in basso chiude, come in ogni altro lettore. Trascinare
+    // in alto apre la coda, che prima si raggiungeva solo con l'icona in
+    // alto — qui e' il gesto che chi ascolta prova per primo.
     //
     // Lo spostamento segue il dito invece di aspettare la fine del
-    // gesto: e' cosi' che si capisce, a meta' strada, che si sta per
-    // chiudere e che si puo' ancora cambiare idea. Sotto la soglia
-    // torna su da solo.
+    // gesto: e' cosi' che si capisce, a meta' strada, che sta per
+    // succedere qualcosa e che si puo' ancora cambiare idea. Sotto la
+    // soglia torna su da solo. Verso l'alto il tetto e' basso apposta
+    // (vedi [massimoSu]): la coda si apre come foglio a parte, non e'
+    // "sotto" questa schermata — spostarla per intero darebbe l'idea di
+    // scoprire qualcosa che qui non c'e'.
     val densita = LocalDensity.current
     var trascinamento by remember { mutableFloatStateOf(0f) }
-    val soglia = with(densita) { 140.dp.toPx() }
+    val sogliaGiu = with(densita) { 140.dp.toPx() }
+    val sogliaSu = with(densita) { 70.dp.toPx() }
+    // Deve restare sopra sogliaSu, altrimenti il trascinamento verso
+    // l'alto viene bloccato prima di raggiungere la soglia e il gesto
+    // non scatta mai — esattamente il bug segnalato.
+    val massimoSu = with(densita) { 100.dp.toPx() }
     val scostamento by animateFloatAsState(
         trascinamento,
         // Mentre il dito e' giu' non si anima: l'animazione inseguirebbe
@@ -126,15 +138,15 @@ fun NowPlayingScreen(vm: MainViewModel, onClose: () -> Unit) {
             .pointerInput(Unit) {
                 detectVerticalDragGestures(
                     onDragEnd = {
-                        if (trascinamento > soglia) onClose()
+                        when {
+                            trascinamento > sogliaGiu -> onClose()
+                            trascinamento < -sogliaSu -> vm.showQueue(true)
+                        }
                         trascinamento = 0f
                     },
                     onDragCancel = { trascinamento = 0f },
                 ) { _, delta ->
-                    // Solo verso il basso: tirare in su non porta da
-                    // nessuna parte, e lasciarlo fare darebbe l'idea che
-                    // ci sia qualcosa sopra.
-                    trascinamento = (trascinamento + delta).coerceAtLeast(0f)
+                    trascinamento = (trascinamento + delta).coerceIn(-massimoSu, Float.MAX_VALUE)
                 }
             }
             .padding(horizontal = 24.dp),
@@ -211,6 +223,16 @@ fun NowPlayingScreen(vm: MainViewModel, onClose: () -> Unit) {
                         modifier = Modifier.size(64.dp),
                     )
                 }
+                // Lo stesso anello della barra in fondo: appena partito,
+                // finche' non esce audio vero non si distingue un
+                // secondo di caricamento normale da un blocco.
+                if (state.isBuffering) {
+                    CoverDownloadOverlay(
+                        CoverDownload.InAttesa,
+                        accent = tint,
+                        modifier = Modifier.clip(RoundedCornerShape(18.dp)),
+                    )
+                }
             }
         }
 
@@ -276,7 +298,21 @@ fun NowPlayingScreen(vm: MainViewModel, onClose: () -> Unit) {
                     modifier = Modifier.size(22.dp),
                 )
             }
-            Box(Modifier.size(40.dp))
+            // Salvarlo o vedere che e' gia' salvato, senza dover aprire
+            // la scheda del brano: qui e' il posto dove ci si chiede
+            // "questo lo sento anche senza rete?" mentre lo si ascolta,
+            // non dopo essere andati a cercarlo altrove — accanto agli
+            // altri due interruttori che riguardano come suona la coda.
+            IconButton(
+                onClick = { if (!track.salvato) vm.tieniSenzaRete(track.videoId) },
+            ) {
+                Icon(
+                    if (track.salvato) Icons.Default.DownloadDone else Icons.Default.DownloadForOffline,
+                    if (track.salvato) "Salvato, si sente anche senza rete" else "Tieni anche senza rete",
+                    tint = if (track.salvato) tint else Vetro.InkFaint,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
             IconButton(onClick = { vm.cycleRepeat() }) {
                 Icon(
                     // Tre stati e due icone: «ripeti il brano» ha il suo

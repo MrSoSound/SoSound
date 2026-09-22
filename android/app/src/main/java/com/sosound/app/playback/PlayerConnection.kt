@@ -25,6 +25,14 @@ data class PlayerState(
     val durationMs: Long = 0,
     val hasNext: Boolean = false,
     val hasPrevious: Boolean = false,
+    /**
+     * Sta caricando: il brano e' partito ma non sta ancora uscendo
+     * audio vero. Capita sia scaricando (il file non c'e' ancora) sia
+     * risolvendo l'indirizzo in streaming (yt-dlp ci mette un paio di
+     * secondi) — in entrambi i casi da fuori si vede la stessa cosa,
+     * un silenzio che non si distingue da un blocco senza questo.
+     */
+    val isBuffering: Boolean = false,
     /** Posizione del brano in ascolto dentro la coda. */
     val index: Int = 0,
     val shuffle: Boolean = false,
@@ -134,6 +142,7 @@ class PlayerConnection(private val context: Context) {
             durationMs = c.duration.takeIf { it > 0 } ?: 0,
             hasNext = c.hasNextMediaItem(),
             hasPrevious = c.hasPreviousMediaItem(),
+            isBuffering = c.playbackState == Player.STATE_BUFFERING,
             index = index,
             shuffle = c.shuffleModeEnabled,
             repeat = c.repeatMode,
@@ -162,16 +171,41 @@ class PlayerConnection(private val context: Context) {
      * `prepare` e non `play`: ritrovare la coda di stamattina e' comodo,
      * ritrovarsi la musica che parte da sola aprendo l'app non lo e'.
      */
+    /**
+     * Rimette la coda a posto dopo che l'app e' ripartita da zero.
+     *
+     * Due casi molto diversi dietro la stessa chiamata:
+     *
+     * - il servizio non c'era piu' (musica ferma, o il sistema l'ha
+     *   chiuso): il controller e' vuoto, e va caricato tutto da capo,
+     *   dalla posizione salvata;
+     * - il servizio era gia' vivo — la musica non si era mai fermata,
+     *   scartare l'app dai recenti non la ferma se sta suonando — e il
+     *   controller si e' appena ricollegato a una sessione che ha gia'
+     *   la sua coda vera, in corso.
+     *
+     * Il secondo caso NON deve toccare `setMediaItems`: rimpiazzare la
+     * coda di una sessione gia' viva vorrebbe dire farla ripartire da
+     * capo sotto i piedi di chi la sta ascoltando. Ma `_queue` — la
+     * copia per l'interfaccia, titolo/artista/copertina di ogni brano —
+     * e' una cosa nostra, non del controller, e va popolata comunque:
+     * prima veniva saltata insieme al resto, e la barra del player
+     * restava vuota anche con la musica che suonava davvero. La
+     * differenza fra "restare vuota" e "mostrare il brano giusto" era
+     * tutta in quella riga.
+     */
     fun ripristina(tracks: List<TrackEntity>, indice: Int, posizioneMs: Long) {
         val c = controller ?: return
-        if (tracks.isEmpty() || c.mediaItemCount > 0) return
+        if (tracks.isEmpty()) return
         _queue.value = tracks
-        c.setMediaItems(
-            tracks.map { it.toMediaItem() },
-            indice.coerceIn(0, tracks.size - 1),
-            posizioneMs.coerceAtLeast(0),
-        )
-        c.prepare()
+        if (c.mediaItemCount == 0) {
+            c.setMediaItems(
+                tracks.map { it.toMediaItem() },
+                indice.coerceIn(0, tracks.size - 1),
+                posizioneMs.coerceAtLeast(0),
+            )
+            c.prepare()
+        }
         refresh()
     }
 

@@ -38,14 +38,31 @@ class AppUpdateManager(private val context: Context) {
     private val _state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val state: StateFlow<UpdateState> = _state
 
+    /** Se il controllo automatico e' disponibile su questa build. */
+    val disponibile: Boolean get() = !eCanaleDev
+
     val currentVersion: String
         get() = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName
         }.getOrNull() ?: "?"
 
+    /**
+     * Vero sul canale di sviluppo, dove questo controllo non deve girare.
+     *
+     * GithubReleaseClient guarda le release di MrSoSound/SoSound — la
+     * app com.sosound.app, firmata con la chiave di produzione. Un
+     * telefono con com.sosound.app.dev installato che si offrisse di
+     * scaricare e installare QUELLA build si troverebbe a installare
+     * una seconda app estranea spacciata per un aggiornamento della
+     * prima: due identificativi diversi, due firme diverse. Meglio
+     * spento del tutto che puntato al posto sbagliato.
+     */
+    private val eCanaleDev = context.packageName.endsWith(".dev")
+
     /** Chiamato una volta all'avvio dell'app: il freno di [AppUpdatePolicy]
      *  decide se e' davvero il momento di controllare. */
     fun checkOnStartIfNeeded() {
+        if (eCanaleDev) return
         if (policy.shouldCheckOnStart()) check(manual = false)
     }
 
@@ -53,6 +70,7 @@ class AppUpdateManager(private val context: Context) {
      *  giornaliero e ignora una versione eventualmente scartata prima —
      *  l'utente lo sta chiedendo apposta. */
     fun check(manual: Boolean) = scope.launch {
+        if (eCanaleDev) return@launch
         _state.value = UpdateState.Checking
         policy.markChecked()
         runCatching { releases.latestRelease() }

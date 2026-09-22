@@ -6,15 +6,21 @@ nothing to configure.
 
 <p align="center">
   <img src="screenshots/libreria.png" width="45%" alt="SoSound library">
-  <img src="screenshots/impostazioni.png" width="45%" alt="SoSound settings">
+  <img src="screenshots/ascolto.png" width="45%" alt="SoSound now playing">
 </p>
 
 ## Features
 
-- Search **Songs, Albums, Artists, Podcasts** through the YouTube Music API
+- Search **Songs, Albums, Artists, Playlists, Podcasts** through the
+  YouTube Music API
 - Offline download and playback, with no re-encoding: no quality loss,
   no waiting
-- Library with playlists, and playlist import from **Spotify**
+- Library with playlists, and playlist import from **Spotify** and
+  **YouTube Music**
+- **Shuffle several playlists together**: pick the ones you want, get a
+  single queue, shuffled across all of them
+- Explicit tracks are marked, and preferred when an import has to pick
+  between two versions of the same song
 - **Casting** to Chromecast and to DLNA/UPnP devices (TVs, speakers)
 - Lock-screen controls and Bluetooth headset buttons
 - The download engine (`yt-dlp`) updates itself, no app reinstall needed
@@ -23,11 +29,15 @@ nothing to configure.
 
 The APK isn't on the Play Store: install it manually.
 
-1. Grab **`SoSound-arm64.apk`** from the [Releases](../../releases)
-   page (works on most phones from the last ten years). If it gives an
-   architecture error, use `SoSound-universal.apk` instead
+1. Grab **`app-arm64-v8a-release.apk`** from the
+   [Releases](../../releases) page (works on most phones from the last
+   ten years). If it gives an architecture error, use
+   `app-universal-release.apk` instead
 2. Open it from your file manager and allow "install unknown apps"
 3. Open it. There's nothing to configure
+
+From then on the app checks the Releases page by itself and offers to
+download and install the next version, so this is a one-time job.
 
 ## Legal
 

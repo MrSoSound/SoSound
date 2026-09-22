@@ -65,6 +65,23 @@ class InnerTubeTest {
     }
 
     @Test
+    fun `il badge esplicito viene letto dalla ricerca vera`() = runBlocking {
+        // «Kill You» di Eminem e' segnato esplicito su YouTube Music da
+        // sempre: se questo test comincia a fallire senza che il codice
+        // sia cambiato, e' la forma del badge che YouTube ha spostato,
+        // non la logica del parsing.
+        val results = client.search("eminem kill you", limit = 10)
+        assertFalse("nessun risultato", results.isEmpty())
+
+        val target = results.firstOrNull {
+            it.title.contains("Kill You", true) && it.artist.contains("Eminem", true)
+        }
+        assertNotNull("«Kill You» di Eminem non trovato fra i risultati", target)
+        println("--- ${target!!.title} / ${target.artist} -> explicit=${target.explicit} ---")
+        assertTrue("dovrebbe essere segnato esplicito", target.explicit == true)
+    }
+
+    @Test
     fun `una ricerca senza risultati non esplode`() = runBlocking {
         val results = client.search("zzzqwertyuiopasdfghjkl-non-esiste-12345", limit = 5)
         println("--- ricerca assurda: ${results.size} risultati ---")

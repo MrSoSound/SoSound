@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.Equalizer
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -73,7 +74,11 @@ fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         containerColor = Vetro.Ground,
         contentColor = Vetro.Ink,
-        dragHandle = null,
+        // La maniglia vera del framework, non un segno disegnato a mano:
+        // e' lei a far funzionare lo swipe verso il basso da sopra
+        // l'elenco per chiudere il foglio — senza, quello spazio non
+        // sapeva di dover reagire al trascinamento.
+        dragHandle = { BottomSheetDefaults.DragHandle(color = Vetro.InkFaint) },
     ) {
         Column(Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
             Row(

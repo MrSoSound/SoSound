@@ -72,9 +72,6 @@ data class TrackEntity(
 
     val sizeText: String
         get() = "%.1f MB".format(sizeBytes / 1024.0 / 1024.0)
-
-    val formatText: String
-        get() = path.substringAfterLast('.', "").uppercase().ifEmpty { "?" }
 }
 
 @Entity(tableName = "playlists")
@@ -211,6 +208,16 @@ interface PlaylistDao {
             "WHERE pt.playlistId = :playlistId ORDER BY pt.position"
     )
     fun observeTracks(playlistId: Long): Flow<List<TrackEntity>>
+
+    /** Come [observeTracks], ma una lettura sola: serve a chi deve solo
+     *  prendere uno scatto dei brani (es. il mix di più playlist) senza
+     *  restare in ascolto dei cambiamenti. */
+    @Query(
+        "SELECT t.* FROM tracks t " +
+            "JOIN playlist_tracks pt ON pt.videoId = t.videoId " +
+            "WHERE pt.playlistId = :playlistId ORDER BY pt.position"
+    )
+    suspend fun tracksOf(playlistId: Long): List<TrackEntity>
 
     @Query("SELECT * FROM playlists WHERE id = :id")
     fun observeOne(id: Long): Flow<PlaylistEntity?>

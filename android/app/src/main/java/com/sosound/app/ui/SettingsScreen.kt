@@ -1,6 +1,10 @@
 package com.sosound.app.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Construction
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,7 +36,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.media3.common.util.UnstableApi
@@ -70,6 +73,28 @@ fun SettingsScreen(vm: MainViewModel) {
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        // Il primo cartello dentro le impostazioni.
+        //
+        // L'icona e il nome distinguono le due app dal launcher; questo
+        // serve per l'attimo in cui si e' gia' dentro e i due lettori si
+        // somigliano — la schermata di ascolto e' identica pixel per
+        // pixel, ed e' li' che sbagliare app costa di piu' (importare in
+        // quella sbagliata, scrivere note nella cartella sbagliata).
+        if (com.sosound.app.BuildConfig.APPLICATION_ID.endsWith(".dev")) {
+            Row(
+                Modifier.fillMaxWidth().glass().padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Icon(Icons.Default.Construction, null, tint = Vetro.Danger, modifier = Modifier.size(18.dp))
+                Text(
+                    "Canale di sviluppo — non è la versione distribuita",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = Vetro.Danger,
+                )
+            }
+        }
+
         Box(Modifier.fillMaxWidth().glass()) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Dove finiscono i file", style = MaterialTheme.typography.titleMedium, color = Vetro.Ink)
@@ -311,7 +336,22 @@ fun SettingsScreen(vm: MainViewModel) {
 
                 HorizontalDivider()
 
-                when (val s = appUpdate) {
+                if (!vm.appUpdateDisponibile) {
+                    // Non e' un tasto spento: e' detto perche'.
+                    //
+                    // Il controllo guarda le release della versione
+                    // distribuita, firmata con un'altra chiave. Offrirlo
+                    // qui vorrebbe dire proporre di installare un'app
+                    // diversa spacciandola per un aggiornamento.
+                    Text(
+                        "Non disponibile sul canale di sviluppo: le " +
+                            "release che questo controllo guarda sono " +
+                            "quelle della versione distribuita, firmata " +
+                            "con un'altra chiave.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Vetro.InkFaint,
+                    )
+                } else when (val s = appUpdate) {
                     is UpdateState.Idle -> {
                         Button(onClick = { vm.checkForAppUpdate() }, modifier = Modifier.fillMaxWidth()) {
                             Text("Controlla aggiornamenti")

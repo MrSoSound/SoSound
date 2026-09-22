@@ -25,6 +25,18 @@ data class QueueItem(
     /** Messaggio di servizio mostrato sotto la barra, tipo
      *  «aggiorno yt-dlp e riprovo». Sparisce quando cambia stato. */
     val note: String? = null,
+    /**
+     * Se il brano, una volta arrivato, entra in libreria per sempre o
+     * resta solo in cache.
+     *
+     * Vero per un download chiesto apposta (il tasto «+», «Scarica e
+     * basta»): è una scelta esplicita di tenerlo. Falso per un brano
+     * messo in coda di riproduzione ma non ancora tuo — lì lo si scarica
+     * solo per non far aspettare chi ascolta quando arriva il suo turno,
+     * non perché qualcuno abbia chiesto di conservarlo: deve restare in
+     * cache, sfollabile come qualunque altro brano solo ascoltato.
+     */
+    val salvato: Boolean = true,
 ) {
     enum class State { IN_ATTESA, IN_CORSO, AGGIORNO, FATTO, ERRORE }
 }
@@ -100,16 +112,28 @@ class DownloadQueue(
      * Con [playWhenReady] il brano parte da solo appena finito di
      * scaricare: e' quello che succede toccando un risultato di ricerca.
      */
-    fun enqueue(track: CatalogTrack, playWhenReady: Boolean = false) {
+    fun enqueue(track: CatalogTrack, playWhenReady: Boolean = false, salvato: Boolean = true) {
         if (playWhenReady) autoPlayId = track.videoId
 
         val existing = _items.value.firstOrNull { it.track.videoId == track.videoId }
         // Già in coda o in corso: non si accoda due volte. Se invece era
         // fallito, riaccodarlo è esattamente quello che si vuole.
-        if (existing != null && existing.state != QueueItem.State.ERRORE) return
+        //
+        // Un'eccezione: se era in coda solo per la cache e ora si chiede
+        // di tenerlo per davvero, la richiesta esplicita vince — non ha
+        // senso restare in silenzio su un salvataggio appena chiesto solo
+        // perché il download era già partito per un altro motivo.
+        if (existing != null && existing.state != QueueItem.State.ERRORE) {
+            if (salvato && !existing.salvato) {
+                _items.value = _items.value.map {
+                    if (it.track.videoId == track.videoId) it.copy(salvato = true) else it
+                }
+            }
+            return
+        }
 
         _items.value = _items.value.filterNot { it.track.videoId == track.videoId } +
-            QueueItem(track)
+            QueueItem(track, salvato = salvato)
         startService()
         scope.launch { channel.send(track) }
     }
@@ -130,14 +154,24 @@ class DownloadQueue(
             val entity = downloader.download(track) { p ->
                 update(track.videoId) { it.copy(progress = p) }
             }
+            // Il salvataggio vero si legge adesso, non a inizio funzione:
+            // nel frattempo qualcuno potrebbe aver chiesto di tenerlo per
+            // davvero (vedi enqueue) mentre il download era gia' in corso.
+            val salvato = _items.value.firstOrNull { it.track.videoId == track.videoId }
+                ?.salvato ?: true
             // La data di aggiunta e' quella di quando il brano e'
             // entrato in libreria, non di quando ne e' arrivato il file:
             // riscaricandolo risaliva in cima a «Brani» come se fosse
             // nuovo.
             val prima = dao.byId(track.videoId)
             dao.upsert(
-                if (prima != null && prima.addedAt > 0) entity.copy(addedAt = prima.addedAt)
-                else entity
+                entity.copy(
+                    addedAt = if (prima != null && prima.addedAt > 0) prima.addedAt else entity.addedAt,
+                    // Un riferimento gia' salvato non torna cache solo
+                    // perche' qualcosa lo riscarica: si sale a "salvato",
+                    // non si scende.
+                    salvato = salvato || prima?.salvato == true,
+                )
             )
             update(track.videoId) { it.copy(state = QueueItem.State.FATTO, progress = 1f) }
 
